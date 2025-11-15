@@ -36,7 +36,7 @@ var _ Replace[e] = (&Mock[e, c, u, r]{}).Replace
 var _ Update[u] = (&Mock[e, c, u, r]{}).Update
 var _ Delete[e] = (&Mock[e, c, u, r]{}).Delete
 
-// A mock that mocks all generic Mock interfaces for Entity E and UpdateEntity U
+// A mock that mocks all generic Mock interfaces for Entity E, CreateEntity C, UpdateEntity U, and ReplaceEntity R
 // To be used in tests
 type Mock[E Entity, C CreateEntity, U UpdateEntity, R ReplaceEntity] struct{ mock.Mock }
 
