@@ -9,6 +9,7 @@ import (
 // Compile time checks
 var _ Entity = e{}
 var _ UpdateEntity = u{}
+var _ ReplaceEntity = r{}
 var _ CreateEntity = c{}
 
 type e struct{}
