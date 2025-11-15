@@ -166,7 +166,7 @@ func resolveVal(root any, op CondOp, field string) (any, error) {
 			if !ok {
 				return nil, fmt.Errorf("field %s in %s is not an entity", seg, field)
 			}
-			root = ent.Pointer(seg)
+			root = ent.FilterPtr(seg)
 			if root == nil {
 				return nil, fmt.Errorf("field %s not found", field)
 			}
@@ -188,7 +188,7 @@ func resolveArrayElem(root any, field string) (any, error) {
 		if !ok {
 			return nil, fmt.Errorf("field %s in %s is not an entity", seg, field)
 		}
-		root = ent.Pointer(seg)
+		root = ent.FilterPtr(seg)
 		if root == nil {
 			return nil, fmt.Errorf("field %s not found", field)
 		}

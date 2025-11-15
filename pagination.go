@@ -79,7 +79,7 @@ func (s Sorts) Cursor(cursorItem Entity) Cursor {
 	}
 	cursor := make(Cursor, len(s.Sorts))
 	for i := range s.Sorts {
-		cursor[i] = reflect.ValueOf(cursorItem.Pointer(s.Sorts[i].Field)).Elem().Interface()
+		cursor[i] = reflect.ValueOf(cursorItem.SortPtr(s.Sorts[i].Field)).Elem().Interface()
 	}
 	return cursor
 }
@@ -125,7 +125,7 @@ func (s *Sorts) FromStr(sorts []string, cursor string) error {
 		}
 
 		// Create cursor with the same type as the field
-		cursorPart := s.Sample.Pointer(split[0])
+		cursorPart := s.Sample.SortPtr(split[0])
 		if cursorPart == nil {
 			return fmt.Errorf("field %s not found", split[0])
 		}
