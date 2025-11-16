@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	ErrDBUnhandled = tagerr.ErrInternal.Wrap(&tagerr.Err{
-		Err: errors.New("db unhandled error"),
-		Tag: "unhandled_database_error",
+	ErrDatastoreUnhandled = tagerr.ErrInternal.Wrap(&tagerr.Err{
+		Err: errors.New("datastore unhandled error"),
+		Tag: "unhandled_datastore_error",
 	})
-	ErrAPIUnhandled = tagerr.ErrInternal.Wrap(&tagerr.Err{
-		Err: errors.New("api unhandled error"),
-		Tag: "unhandled_api_error",
+	ErrInUse = tagerr.ErrFailedPreCond.Wrap(&tagerr.Err{
+		Err: errors.New("entity in use and is referenced by other entities"),
+		Tag: "entity_in_use",
 	})
 	ErrInvalidField = tagerr.ErrInvalidReq.Wrap(&tagerr.Err{
 		Err: errors.New("invalid field"),
@@ -32,13 +32,3 @@ var (
 		Tag: "invalid_expr",
 	})
 )
-
-func ErrDBTx(err error) error {
-	if err == nil {
-		return nil
-	}
-	if err, ok := err.(*tagerr.Err); ok {
-		return err
-	}
-	return ErrDBUnhandled.Wrap(err)
-}

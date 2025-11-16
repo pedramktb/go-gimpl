@@ -9,22 +9,8 @@ import (
 	"github.com/pedramktb/go-gimpl"
 )
 
-// ApplyExprToQuery applies an gimpl.Expr filter to a squirrel SelectBuilder query.
-// If filters.Expr is nil, the query is returned unchanged.
-func ApplyExprToQuery(query squirrel.SelectBuilder, filters gimpl.Expr) (squirrel.SelectBuilder, error) {
-	if filters.Expr == nil {
-		return query, nil
-	}
-	where, err := ExprToQuery(filters)
-	if err != nil {
-		return query, err
-	}
-
-	return query.Where(where), nil
-}
-
-// ExprToQuery converts an gimpl.Expr logical/quantified expression tree into a SQL WHERE fragment
-// and a slice of args (squirrel.Sqlizer)
+// FromExpr converts an gimpl.Expr logical/quantified expression tree into a squirrel.Sqlizer fragment
+// and a slice of args that is compatible with postgres.
 //
 // Conventions implemented:
 //   - A CondExpr whose Field has no dots (e.g. "status") and is NOT nested beneath a quantifier
@@ -36,7 +22,10 @@ func ApplyExprToQuery(query squirrel.SelectBuilder, filters gimpl.Expr) (squirre
 //     jsonb_array_elements(). Nested quantifiers are supported (aliases are generated q0, q1, ...).
 //   - IN / NIN for JSON values rely on the jsonb containment operator '<@'
 //     Column IN / NIN use '= ANY (?)' / '!= ALL (?)' patterns.
-func ExprToQuery(e gimpl.Expr) (squirrel.Sqlizer, error) {
+func FromExpr(e gimpl.Expr) (squirrel.Sqlizer, error) {
+	if e.Expr == nil {
+		return nil, nil
+	}
 	b := &builder{}
 	query, args, err := b.build(e.Expr, buildContext{sqlMode: true, sqlFirstLevel: true})
 	if err != nil {

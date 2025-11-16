@@ -10,24 +10,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// helper to get SQL + args from ExprToQuery
+// helper to get SQL + args from FromExpr
 func toSQL(t *testing.T, e gimpl.Expr) (string, []any) {
 	t.Helper()
-	sqlizer, err := pgimpl.ExprToQuery(e)
+	sqlizer, err := pgimpl.FromExpr(e)
 	require.NoError(t, err)
 	q, args, err := sqlizer.ToSql()
 	require.NoError(t, err)
 	return q, args
 }
 
-func TestExprToQuery_SimpleColumn(t *testing.T) {
+func TestFromExpr_SimpleColumn(t *testing.T) {
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpEQ, Val: "active"}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "status = ?", q)
 	require.Equal(t, []any{"active"}, args)
 }
 
-func TestExprToQuery_JSONPathSimple(t *testing.T) {
+func TestFromExpr_JSONPathSimple(t *testing.T) {
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal("1")
@@ -35,7 +35,7 @@ func TestExprToQuery_JSONPathSimple(t *testing.T) {
 	require.Equal(t, []any{marshaled}, args)
 }
 
-func TestExprToQuery_LogicalAnd(t *testing.T) {
+func TestFromExpr_LogicalAnd(t *testing.T) {
 	left := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpEQ, Val: "active"}}
 	right := gimpl.Expr{Expr: gimpl.CondExpr{Field: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
 	e := gimpl.Expr{Expr: gimpl.LogExpr{Left: left, Op: gimpl.LogOpAnd, Right: right}}
@@ -45,21 +45,21 @@ func TestExprToQuery_LogicalAnd(t *testing.T) {
 	require.Equal(t, []any{"active", marshaled}, args)
 }
 
-func TestExprToQuery_RegexColumn(t *testing.T) {
+func TestFromExpr_RegexColumn(t *testing.T) {
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpRE, Val: "^act"}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "status ~ ?", q)
 	require.Equal(t, []any{"^act"}, args)
 }
 
-func TestExprToQuery_RegexJSON(t *testing.T) {
+func TestFromExpr_RegexJSON(t *testing.T) {
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "meta.name", Op: gimpl.CondOpRE, Val: "^foo"}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "(meta #> '{name}') #>> '{}' ~ ?", q)
 	require.Equal(t, []any{"^foo"}, args)
 }
 
-func TestExprToQuery_IN_Column(t *testing.T) {
+func TestFromExpr_IN_Column(t *testing.T) {
 	vals := []string{"a", "b"}
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpIN, Val: vals}}
 	q, args := toSQL(t, e)
@@ -67,7 +67,7 @@ func TestExprToQuery_IN_Column(t *testing.T) {
 	require.Equal(t, []any{vals}, args)
 }
 
-func TestExprToQuery_NIN_Column(t *testing.T) {
+func TestFromExpr_NIN_Column(t *testing.T) {
 	vals := []string{"x", "y"}
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpNIN, Val: vals}}
 	q, args := toSQL(t, e)
@@ -75,7 +75,7 @@ func TestExprToQuery_NIN_Column(t *testing.T) {
 	require.Equal(t, []any{vals}, args)
 }
 
-func TestExprToQuery_IN_JSON(t *testing.T) {
+func TestFromExpr_IN_JSON(t *testing.T) {
 	vals := []int{1, 2}
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "meta.ids", Op: gimpl.CondOpIN, Val: vals}}
 	q, args := toSQL(t, e)
@@ -84,7 +84,7 @@ func TestExprToQuery_IN_JSON(t *testing.T) {
 	require.Equal(t, []any{marshaled}, args)
 }
 
-func TestExprToQuery_QuantAny(t *testing.T) {
+func TestFromExpr_QuantAny(t *testing.T) {
 	// ANY items where element.id = 1
 	inner := gimpl.Expr{Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpEQ, Val: 1}}
 	e := gimpl.Expr{Expr: gimpl.QuantExpr{Field: "items", Op: gimpl.QuantOpAny, Expr: inner}}
@@ -95,7 +95,7 @@ func TestExprToQuery_QuantAny(t *testing.T) {
 	require.Equal(t, []any{marshaledOne}, args)
 }
 
-func TestExprToQuery_QuantAll(t *testing.T) {
+func TestFromExpr_QuantAll(t *testing.T) {
 	inner := gimpl.Expr{Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpGT, Val: 10}}
 	e := gimpl.Expr{Expr: gimpl.QuantExpr{Field: "items", Op: gimpl.QuantOpAll, Expr: inner}}
 	q, args := toSQL(t, e)
@@ -105,7 +105,7 @@ func TestExprToQuery_QuantAll(t *testing.T) {
 	require.Equal(t, []any{marshaledTen}, args)
 }
 
-func TestExprToQuery_NestedQuantifiers(t *testing.T) {
+func TestFromExpr_NestedQuantifiers(t *testing.T) {
 	// ANY items where ALL sub.id eq 5
 	deepest := gimpl.Expr{Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpEQ, Val: 5}}
 	allSub := gimpl.Expr{Expr: gimpl.QuantExpr{Field: "sub", Op: gimpl.QuantOpAll, Expr: deepest}}
@@ -119,18 +119,19 @@ func TestExprToQuery_NestedQuantifiers(t *testing.T) {
 	require.Contains(t, q, "NOT EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(q0.elem #> '{sub}') = 'array' THEN q0.elem #> '{sub}' ELSE '[]'::jsonb END) AS q1(elem) WHERE NOT (q1.elem #> '{id}' = ?::jsonb))")
 }
 
-func TestExprToQuery_InvalidOperator(t *testing.T) {
+func TestFromExpr_InvalidOperator(t *testing.T) {
 	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOp("bogus"), Val: 1}}
-	_, err := pgimpl.ExprToQuery(e)
+	_, err := pgimpl.FromExpr(e)
 	require.Error(t, err)
 	require.ErrorIs(t, err, gimpl.ErrInvalidExpr)
 }
 
-func TestApplyExprToQuery_NoExpr(t *testing.T) {
+func TestFromExpr_NoExpr(t *testing.T) {
 	base := squirrel.Select("id").From("table")
 	// filters.Expr nil triggers passthrough
 	filters := gimpl.Expr{} // zero value; Expr field is nil
-	out, err := pgimpl.ApplyExprToQuery(base, filters)
+	filter, err := pgimpl.FromExpr(filters)
+	out := base.Where(filter)
 	require.NoError(t, err)
 	sqlStr, args, err := out.ToSql()
 	require.NoError(t, err)
@@ -138,10 +139,11 @@ func TestApplyExprToQuery_NoExpr(t *testing.T) {
 	require.Empty(t, args)
 }
 
-func TestApplyExprToQuery_WithExpr(t *testing.T) {
+func TestApplyFromExpr_WithExpr(t *testing.T) {
 	base := squirrel.Select("id").From("table")
 	filters := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpEQ, Val: "active"}}
-	out, err := pgimpl.ApplyExprToQuery(base, filters)
+	filter, err := pgimpl.FromExpr(filters)
+	out := base.Where(filter)
 	require.NoError(t, err)
 	sqlStr, args, err := out.ToSql()
 	require.NoError(t, err)

@@ -7,9 +7,9 @@ import (
 	"github.com/pedramktb/go-gimpl"
 )
 
-// ApplySortsToQuery returns the given query with sorting and cursors applied. It also
+// FromSorts returns the given query with sorting and cursors applied. It also
 // returns a reverse query for fetching the previous first result required for the prev cursor.
-func ApplySortsToQuery(s gimpl.Sorts, query squirrel.SelectBuilder) (_ squirrel.SelectBuilder, reverse *squirrel.SelectBuilder) {
+func FromSorts(s gimpl.Sorts, query squirrel.SelectBuilder) (_ squirrel.SelectBuilder, reverse *squirrel.SelectBuilder) {
 	rev := query
 	if cursorCond := cursorQuery(s); cursorCond != nil {
 		query = query.Where(cursorCond)

@@ -12,10 +12,8 @@ import (
 )
 
 const (
-	PaginationDefaultLimit PaginationLimit = 10
+	PaginationDefaultLimit uint64 = 10
 )
-
-type PaginationLimit uint8
 
 type PaginationMeta struct {
 	Total uint64
