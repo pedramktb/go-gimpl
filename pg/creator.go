@@ -34,7 +34,7 @@ func (c *creator[C]) Create(ctx context.Context, items []C, txOpts ...gimpl.TxOp
 
 	builder := squirrel.Insert(c.table).PlaceholderFormat(squirrel.Dollar).Columns((*new(C)).CreateColumns()...)
 	for i := range items {
-		builder = builder.Values(items[i].CreateColumnPtrs()...)
+		builder = builder.Values(items[i].CreateColumnVals()...)
 	}
 	query, args, err := builder.ToSql()
 	if err != nil {

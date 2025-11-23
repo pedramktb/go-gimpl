@@ -19,8 +19,8 @@ func (e TestCreateEntity) CreateColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
 
-func (e TestCreateEntity) CreateColumnPtrs() []any {
-	return []any{&e.ID, &e.Name}
+func (e TestCreateEntity) CreateColumnVals() []any {
+	return []any{e.ID, e.Name}
 }
 
 func Test_Create(t *testing.T) {

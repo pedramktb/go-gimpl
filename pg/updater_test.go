@@ -19,16 +19,16 @@ func (e TestUpdateEntity) IdentifyColumns() []string {
 	return []string{"pg_id"}
 }
 
-func (e TestUpdateEntity) IdentifyColumnPtrs() []any {
-	return []any{&e.ID}
+func (e TestUpdateEntity) IdentifyColumnVals() []any {
+	return []any{e.ID}
 }
 
 func (e TestUpdateEntity) UpdateColumns() []string {
 	return []string{"pg_name"}
 }
 
-func (e TestUpdateEntity) UpdateColumnPtrs() []any {
-	return []any{&e.Name}
+func (e TestUpdateEntity) UpdateColumnVals() []any {
+	return []any{e.Name}
 }
 
 func Test_Update(t *testing.T) {

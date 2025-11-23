@@ -43,7 +43,7 @@ func (u *updater[U]) Update(ctx context.Context, items []U, txOpts ...gimpl.TxOp
 	for i := range items {
 		andConditions := squirrel.And{}
 		for j := range sample.IdentifyColumns() {
-			andConditions = append(andConditions, squirrel.Eq{sample.IdentifyColumns()[j]: items[i].IdentifyColumnPtrs()[j]})
+			andConditions = append(andConditions, squirrel.Eq{sample.IdentifyColumns()[j]: items[i].IdentifyColumnVals()[j]})
 		}
 		orConditions = append(orConditions, andConditions)
 	}
@@ -64,7 +64,7 @@ func (u *updater[U]) Update(ctx context.Context, items []U, txOpts ...gimpl.TxOp
 	builder := squirrel.Insert(u.table).PlaceholderFormat(squirrel.Dollar).
 		Columns(append(sample.IdentifyColumns(), sample.UpdateColumns()...)...)
 	for i := range items {
-		builder = builder.Values(append(items[i].IdentifyColumnPtrs(), items[i].UpdateColumnPtrs()...)...)
+		builder = builder.Values(append(items[i].IdentifyColumnVals(), items[i].UpdateColumnVals()...)...)
 	}
 	builder = builder.Suffix("ON CONFLICT (" + strings.Join(sample.IdentifyColumns(), ",") +
 		") DO UPDATE SET " + strings.Join(func() []string {

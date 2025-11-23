@@ -18,24 +18,24 @@ func (e TestCreateOrUpdateEntity) CreateColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
 
-func (e TestCreateOrUpdateEntity) CreateColumnPtrs() []any {
-	return []any{&e.ID, &e.Name}
+func (e TestCreateOrUpdateEntity) CreateColumnVals() []any {
+	return []any{e.ID, e.Name}
 }
 
 func (e TestCreateOrUpdateEntity) IdentifyColumns() []string {
 	return []string{"pg_id"}
 }
 
-func (e TestCreateOrUpdateEntity) IdentifyColumnPtrs() []any {
-	return []any{&e.ID}
+func (e TestCreateOrUpdateEntity) IdentifyColumnVals() []any {
+	return []any{e.ID}
 }
 
 func (e TestCreateOrUpdateEntity) UpdateColumns() []string {
 	return []string{"pg_name"}
 }
 
-func (e TestCreateOrUpdateEntity) UpdateColumnPtrs() []any {
-	return []any{&e.Name}
+func (e TestCreateOrUpdateEntity) UpdateColumnVals() []any {
+	return []any{e.Name}
 }
 
 func Test_CreateOrUpdate(t *testing.T) {

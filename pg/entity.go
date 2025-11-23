@@ -8,7 +8,7 @@ type Entity interface {
 	gimpl.Entity
 	// Column returns the column name used for the given field
 	Column(field string) string
-	// Columns returns a slice of column names used for data retrieval, columns must match the order of pointers returned by GetColumnPtrs
+	// Columns returns a slice of column names used for data retrieval.
 	// Returned values should be static and not vary between calls
 	Columns() []string
 	// NewWithColumnPtrs returns a new entity and a slice of pointers to the fields used for writing to the entity during data retrieval
@@ -21,30 +21,30 @@ type Entity interface {
 // DO NOT USE POINTER RECEIVERS
 type CreateEntity interface {
 	gimpl.CreateEntity
-	// CreateColumns returns a slice of column names used for creation operations, columns must match the order of pointers returned by CreateColumnPtrs
+	// CreateColumns returns a slice of column names used for creation operations.
 	// Returned values should be static and not vary between calls
 	CreateColumns() []string
-	// CreateColumnPtrs returns a slice of pointers to the fields used for writing to the entity during creation operations
+	// CreateColumnVals returns a slice of the fields used for writing to the entity during creation operations
 	// Returned values should not be dynamic and must correspond to the columns returned by CreateColumns
-	CreateColumnPtrs() []any
+	CreateColumnVals() []any
 }
 
 // UpdateEntity is an extension of gimpl.UpdateEntity for Postgres update operations.
 // DO NOT USE POINTER RECEIVERS
 type UpdateEntity interface {
 	gimpl.UpdateEntity
-	// IdentifyColumns returns a slice of column names used to identify unique records for update operations, columns must match the order of pointers returned by IdentifyColumnPtrs
+	// IdentifyColumns returns a slice of column names used to identify unique records for update operations.
 	// Returned values should be static and not vary between calls
 	IdentifyColumns() []string
-	// IdentifyColumnPtrs returns a slice of pointers to the fields used to identify unique records for update operations
+	// IdentifyColumnVals returns a slice of the fields used to identify unique records for update operations
 	// Returned values should not be dynamic and must correspond to the columns returned by IdentifyColumns
-	IdentifyColumnPtrs() []any
-	// UpdateColumns returns a slice of column names used for update operations, columns must match the order of pointers returned by UpdateColumnPtrs
+	IdentifyColumnVals() []any
+	// UpdateColumns returns a slice of column names used for update operations.
 	// Returned values should be static and not vary between calls
 	UpdateColumns() []string
-	// UpdateColumnPtrs returns a slice of pointers to the fields used for writing to the entity during update operations
+	// UpdateColumnVals returns a slice of the fields used for writing to the entity during update operations
 	// Returned values should not be dynamic and must correspond to the columns returned by UpdateColumns
-	UpdateColumnPtrs() []any
+	UpdateColumnVals() []any
 }
 
 // CreateOrUpdateEntity is an extension of gimpl.CreateOrUpdateEntity for Postgres create or update operations.

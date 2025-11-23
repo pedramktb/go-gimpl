@@ -42,7 +42,7 @@ func (cu *createOrUpdater[CU]) CreateOrUpdate(ctx context.Context, items []CU, t
 		Columns(sample.CreateColumns()...)
 
 	for i := range items {
-		builder = builder.Values(items[i].CreateColumnPtrs()...)
+		builder = builder.Values(items[i].CreateColumnVals()...)
 	}
 
 	builder = builder.Suffix("ON CONFLICT (" + strings.Join(sample.IdentifyColumns(), ",") +
