@@ -28,7 +28,6 @@ func (d *deleter[E]) Delete(ctx context.Context, locateOpts []gimpl.LocateOpt, t
 	if err != nil {
 		return err
 	}
-
 	if tOpts.AutoFinalize {
 		defer func() { err = tOpts.Tx.Finalize(err) }()
 	}
@@ -40,7 +39,7 @@ func (d *deleter[E]) Delete(ctx context.Context, locateOpts []gimpl.LocateOpt, t
 	}
 	if filter == nil {
 		// Prevent full table delete
-		return gimpl.ErrInvalidExpr.Wrap(errors.New("delete operation requires a filter expression"))
+		return gimpl.ErrDatastoreUnhandled.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("delete operation requires a filter expression")))
 	}
 	builder = builder.Where(filter)
 	query, args, err := builder.ToSql()

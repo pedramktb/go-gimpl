@@ -20,11 +20,14 @@ func Creator[C CreateEntity](db *sql.DB, table string) gimpl.Create[C] {
 }
 
 func (c *creator[C]) Create(ctx context.Context, items []C, txOpts ...gimpl.TxOpt) (err error) {
+	if len(items) == 0 {
+		return nil
+	}
+
 	tOpts, err := TxOpts(ctx, c.db, txOpts)
 	if err != nil {
 		return err
 	}
-
 	if tOpts.AutoFinalize {
 		defer func() { err = tOpts.Tx.Finalize(err) }()
 	}

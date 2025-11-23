@@ -30,10 +30,10 @@ func (g *getter[E]) Get(ctx context.Context, locateOpts []gimpl.LocateOpt, pagin
 		defer func() { err = tOpts.Tx.Finalize(err) }()
 	}
 
-	builder := squirrel.Select((*new(E)).GetColumns()...).PlaceholderFormat(squirrel.Dollar).From(g.table)
+	builder := squirrel.Select((*new(E)).Columns()...).PlaceholderFormat(squirrel.Dollar).From(g.table)
 	filter, err := FromExpr(locOpts.Filter)
 	if err != nil {
-		return gimpl.Paginated[E]{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
+		return gimpl.Paginated[E]{}, err
 	}
 	builder = builder.Where(filter)
 
@@ -49,7 +49,10 @@ func (g *getter[E]) Get(ctx context.Context, locateOpts []gimpl.LocateOpt, pagin
 
 	// Apply sorts and pagination
 	var prevCursorBuilder *squirrel.SelectBuilder
-	builder, prevCursorBuilder = FromSorts(pagOpts.Sorts, builder)
+	builder, prevCursorBuilder, err = FromSorts(pagOpts.Sorts, builder)
+	if err != nil {
+		return gimpl.Paginated[E]{}, err
+	}
 	query, args, err := builder.Limit(pagOpts.Limit + 1).ToSql()
 	if err != nil {
 		return gimpl.Paginated[E]{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
@@ -100,12 +103,12 @@ func (g *getter[E]) get(ctx context.Context, tOpts txOpts, query string, args ..
 
 	var results []E
 	for rows.Next() {
-		e := (*new(E)).New().(E)
-		err := rows.Scan(e.GetColumnPtrs()...)
+		e, ptrs := (*new(E)).NewWithColumnPtrs()
+		err := rows.Scan(ptrs...)
 		if err != nil {
 			return nil, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 		}
-		results = append(results, e)
+		results = append(results, e.(E))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()

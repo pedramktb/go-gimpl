@@ -9,6 +9,23 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/pedramktb/go-tagerr"
+)
+
+var (
+	ErrInvalidSorting = tagerr.ErrInvalidReq.Wrap(&tagerr.Err{
+		Err: errors.New("invalid sorting"),
+		Tag: "invalid_sorting",
+	})
+	ErrInvalidCursor = tagerr.ErrInvalidReq.Wrap(&tagerr.Err{
+		Err: errors.New("invalid cursor"),
+		Tag: "invalid_cursor",
+	})
+	ErrMismatchInSortAndCursor = ErrInvalidCursor.Wrap(&tagerr.Err{
+		Err: errors.New("mismatch in sort and cursor"),
+		Tag: "mismatch_in_sort_and_cursor",
+	})
 )
 
 const (
@@ -77,7 +94,11 @@ func (s Sorts) Cursor(cursorItem Entity) Cursor {
 	}
 	cursor := make(Cursor, len(s.Sorts))
 	for i := range s.Sorts {
-		cursor[i] = reflect.ValueOf(cursorItem.SortPtr(s.Sorts[i].Field)).Elem().Interface()
+		ptr := cursorItem.SortPtr(s.Sorts[i].Field)
+		if ptr == nil {
+			return nil
+		}
+		cursor[i] = reflect.ValueOf(ptr).Elem().Interface()
 	}
 	return cursor
 }
@@ -107,7 +128,7 @@ func (s *Sorts) FromStr(sorts []string, cursor string) error {
 
 		// Either null cursor or the same number of parts as sorters
 		if len(cur) != len(sorts) {
-			return ErrInvalidCursor.Wrap(ErrMismatchInSortAndCursor)
+			return ErrMismatchInSortAndCursor
 		}
 	}
 
@@ -125,7 +146,7 @@ func (s *Sorts) FromStr(sorts []string, cursor string) error {
 		// Create cursor with the same type as the field
 		cursorPart := s.Sample.SortPtr(split[0])
 		if cursorPart == nil {
-			return fmt.Errorf("field %s not found", split[0])
+			return fmt.Errorf("field %q not found", split[0])
 		}
 		if len(cur) != 0 {
 			// If there is a cursor part, unmarshal it

@@ -7,6 +7,15 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+
+	"github.com/pedramktb/go-tagerr"
+)
+
+var (
+	ErrInvalidExpr = tagerr.ErrInvalidReq.Wrap(&tagerr.Err{
+		Err: errors.New("invalid expression"),
+		Tag: "invalid_expr",
+	})
 )
 
 // LogOp for logical operators
@@ -81,7 +90,7 @@ type CondExpr struct {
 // UnmarshalJSON unmarshal for top-level Expr. Delegates to decodeExpr with root entity context.
 func (e *Expr) UnmarshalJSON(src []byte) error {
 	if e.Sample == nil {
-		return ErrInvalidExpr.Wrap(errors.New("Expr.Sample must be set before unmarshalling"))
+		return tagerr.ErrInternal.Wrap(ErrInvalidExpr.Wrap(errors.New("Expr.Sample must be set before unmarshalling")))
 	}
 	expr, err := decodeExpr(src, e.Sample)
 	if err != nil {
@@ -129,10 +138,10 @@ func decodeExpr(src json.RawMessage, root any) (any, error) {
 		}
 		val, err := resolveVal(root, tmp.Op, tmp.Field)
 		if err != nil {
-			return nil, fmt.Errorf("resolving condition field %s: %w", tmp.Field, err)
+			return nil, fmt.Errorf("resolving condition field %q: %w", tmp.Field, err)
 		}
 		if err := json.Unmarshal(tmp.Val, val); err != nil {
-			return nil, fmt.Errorf("condition value for field %s: %w", tmp.Field, err)
+			return nil, fmt.Errorf("condition value for field %q: %w", tmp.Field, err)
 		}
 		return CondExpr{Field: tmp.Field, Op: tmp.Op, Val: reflect.ValueOf(val).Elem().Interface()}, nil
 	}
@@ -147,7 +156,7 @@ func decodeExpr(src json.RawMessage, root any) (any, error) {
 		}
 		elem, err := resolveArrayElem(root, tmp.Field)
 		if err != nil {
-			return nil, fmt.Errorf("quantifier field %s: %w", tmp.Field, err)
+			return nil, fmt.Errorf("quantifier field %q: %w", tmp.Field, err)
 		}
 		nested, err := decodeExpr(tmp.Expr, elem)
 		if err != nil {
@@ -155,7 +164,7 @@ func decodeExpr(src json.RawMessage, root any) (any, error) {
 		}
 		return QuantExpr{Field: tmp.Field, Op: tmp.Op, Expr: Expr{Expr: nested}}, nil
 	}
-	return nil, fmt.Errorf("invalid operator %s", probe.Op)
+	return nil, fmt.Errorf("invalid operator %q", probe.Op)
 }
 
 func resolveVal(root any, op CondOp, field string) (any, error) {
@@ -164,11 +173,11 @@ func resolveVal(root any, op CondOp, field string) (any, error) {
 		for seg := range segments {
 			ent, ok := root.(Entity)
 			if !ok {
-				return nil, fmt.Errorf("field %s in %s is not an entity", seg, field)
+				return nil, fmt.Errorf("field %q in %q is not an entity", seg, field)
 			}
 			root = ent.FilterPtr(seg)
 			if root == nil {
-				return nil, fmt.Errorf("field %s not found", field)
+				return nil, fmt.Errorf("field %q not found", field)
 			}
 		}
 	}
@@ -186,11 +195,11 @@ func resolveArrayElem(root any, field string) (any, error) {
 	for seg := range segments {
 		ent, ok := root.(Entity)
 		if !ok {
-			return nil, fmt.Errorf("field %s in %s is not an entity", seg, field)
+			return nil, fmt.Errorf("field %q in %q is not an entity", seg, field)
 		}
 		root = ent.FilterPtr(seg)
 		if root == nil {
-			return nil, fmt.Errorf("field %s not found", field)
+			return nil, fmt.Errorf("field %q not found", field)
 		}
 	}
 
@@ -200,7 +209,7 @@ func resolveArrayElem(root any, field string) (any, error) {
 	}
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-		return nil, fmt.Errorf("field %s is not an array or slice", field)
+		return nil, fmt.Errorf("field %q is not an array or slice", field)
 	}
 
 	return reflect.New(t.Elem()).Interface(), nil
