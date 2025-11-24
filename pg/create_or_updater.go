@@ -16,7 +16,7 @@ type createOrUpdater[CU CreateOrUpdateEntity] struct {
 }
 
 // CreateOrUpdater returns a gimpl.CreateOrUpdate function for the specified entity type and table name
-// CR must be a pointer struct that implements the CreateOrUpdateEntity interface
+// CU must implement the CreateOrUpdateEntity interface
 func CreateOrUpdater[CU CreateOrUpdateEntity](db *sql.DB, table string) gimpl.CreateOrUpdate[CU] {
 	return (&createOrUpdater[CU]{db, table}).CreateOrUpdate
 }

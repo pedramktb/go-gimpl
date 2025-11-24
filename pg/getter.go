@@ -14,7 +14,7 @@ type getter[E Entity] struct {
 }
 
 // Getter returns a gimpl.Get function for the specified entity type and table name
-// E must be a pointer struct that implements the Entity interface
+// E must implement the Entity interface
 func Getter[E Entity](db *sql.DB, table string) gimpl.Get[E] {
 	return (&getter[E]{db, table}).Get
 }

@@ -17,7 +17,7 @@ type deleter[E Entity] struct {
 }
 
 // Deleter returns a gimpl.Delete function for the specified entity type and table name
-// E must be a pointer struct that implements the Entity interface
+// E must implement the Entity interface
 func Deleter[E Entity](db *sql.DB, table string) gimpl.Delete[E] {
 	return (&deleter[E]{db, table}).Delete
 }
