@@ -1,5 +1,5 @@
 # gimpl (Go Generic Simple Implementations)
-<img src="logo.png" alt="Logo" width="50"/>
+<img src="logo.png" alt="Logo" width="369"/>
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/pedramktb/go-gimpl.svg)](https://pkg.go.dev/github.com/pedramktb/go-gimpl)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedramktb/go-gimpl)](https://goreportcard.com/report/github.com/pedramktb/go-gimpl)
