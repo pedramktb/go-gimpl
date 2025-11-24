@@ -1,4 +1,4 @@
-# gimpl (Go Generic Simple Implementations)
+# Gimpl
 <img src="logo.png" alt="Logo" width="369"/>
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/pedramktb/go-gimpl.svg)](https://pkg.go.dev/github.com/pedramktb/go-gimpl)
