@@ -1,19 +1,9 @@
-# Gimpl
+# gimpl
 <img src="logo.png" alt="Logo" width="369"/>
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/pedramktb/go-gimpl.svg)](https://pkg.go.dev/github.com/pedramktb/go-gimpl)
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedramktb/go-gimpl)](https://goreportcard.com/report/github.com/pedramktb/go-gimpl)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
-
-## My Information
-
-```
-Name:    Pedram Katebikoushali
-Company: TODO
-Title:   TODO
-Email:   TODO
-Twitter: TODO
-```
 
 ## Licensing
 
@@ -36,7 +26,6 @@ See the LICENSE file in the root of this repository for the full license text.
 - 🏗️ **Clean Architecture**: Separation of concerns with interface-based design
 - 🔌 **Extensible**: Easy to implement for different database systems
 - ⚡ **Performance**: Built on top of proven libraries (Squirrel, pgx)
-
 
 ## Joining our Discord Community
 

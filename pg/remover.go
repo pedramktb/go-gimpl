@@ -17,7 +17,7 @@ type remover[E Entity] struct {
 	table string
 }
 
-// Remover returns a gimpl.Delete function for the specified entity type and table name
+// Remover returns a gimpl.Remover for the specified entity type and table name
 // E must implement the Entity interface
 func Remover[E Entity](db *sql.DB, table string) gimpl.Remover[E] {
 	return &remover[E]{db, table}

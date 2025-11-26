@@ -34,7 +34,7 @@ type Updater[U UpdateEntity] interface {
 	Update(ctx context.Context, items []U, txOpts ...TxOpt) error
 }
 
-// Saver is a datasource type that can be used for create‐or‐update queries
+// Saver is a datasource type that can be used for create-or-update queries
 type Saver[S SaveEntity] interface {
 	Save(ctx context.Context, items []S, txOpts ...TxOpt) error
 }

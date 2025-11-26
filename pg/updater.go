@@ -60,7 +60,7 @@ func (u *updater[U]) Update(ctx context.Context, items []U, txOpts ...gimpl.TxOp
 		return tagerr.ErrNotFound.Wrap(fmt.Errorf("not all entities to update were found"))
 	}
 
-	//Using INSERT...ON CONFLICT to perform upsert: updates existing records (creation should not happen since existence was checked above)
+	// Using INSERT...ON CONFLICT to perform upsert: updates existing records (creation should not happen since existence was checked above)
 	builder := squirrel.Insert(u.table).PlaceholderFormat(squirrel.Dollar).
 		Columns(append(sample.IdentifyColumns(), sample.UpdateColumns()...)...)
 	for i := range items {

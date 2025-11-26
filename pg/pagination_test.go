@@ -92,7 +92,6 @@ func TestFromSorts_NoSample(t *testing.T) {
 
 type invalidEntity struct{}
 
-func (invalidEntity) GimplEntity()                             {}
 func (invalidEntity) FilterPtr(field string) any               { return nil }
 func (invalidEntity) SortPtr(field string) any                 { return nil }
 func (invalidEntity) Column(field string) string               { return "" }

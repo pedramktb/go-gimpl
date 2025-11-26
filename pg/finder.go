@@ -15,7 +15,7 @@ type finder[E Entity] struct {
 	table string
 }
 
-// Finder returns a gimpl.Finder function for the specified entity type and table name
+// Finder returns a gimpl.Finder for the specified entity type and table name
 // E must implement the Entity interface
 func Finder[E Entity](db *sql.DB, table string) gimpl.Finder[E] {
 	return &finder[E]{db, table}

@@ -15,8 +15,8 @@ type saver[S SaveEntity] struct {
 	table string
 }
 
-// CreateOrUpdater returns a gimpl.CreateOrUpdate function for the specified entity type and table name
-// CU must implement the CreateOrUpdateEntity interface
+// Saver returns a gimpl.Saver for the specified entity type and table name
+// S must implement the SaveEntity interface
 func Saver[S SaveEntity](db *sql.DB, table string) gimpl.Saver[S] {
 	return &saver[S]{db, table}
 }
