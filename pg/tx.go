@@ -35,7 +35,7 @@ func NewTx(ctx context.Context, db *sql.DB) (Tx, error) {
 	return Tx{tx}, nil
 }
 
-// Finalize will commit the transaction if opErr is nil; otherwise it rolls back.
+// Finalize will commit the transaction if err is nil; otherwise it rolls back.
 // It returns any error encountered during commit or rollback.
 func (t Tx) Finalize(err error) error {
 	if err != nil {

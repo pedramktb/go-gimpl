@@ -16,7 +16,7 @@ type updater[U UpdateEntity] struct {
 	table string
 }
 
-// Updater returns a gimpl.Update function for the specified entity type and table name
+// Updater returns a gimpl.Updater for the specified entity type and table name
 // U must implement the UpdateEntity interface
 func Updater[U UpdateEntity](db *sql.DB, table string) gimpl.Updater[U] {
 	return &updater[U]{db, table}
