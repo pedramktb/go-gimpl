@@ -3,6 +3,9 @@ package pgimpl
 import (
 	"context"
 	"database/sql"
+	"errors"
+
+	"github.com/pedramktb/go-gimpl"
 )
 
 type CreateTx func(context.Context) (Tx, error)
@@ -18,8 +21,8 @@ func (c *txCreator) tx(ctx context.Context) (Tx, error) {
 }
 
 // Tx wraps a sql.Tx to provide helper methods for committing or rolling back.
-type Tx interface {
-	Finalize(opErr error) error
+type Tx struct {
+	*sql.Tx
 }
 
 // New begins a new transaction on the given pool. The returned *Tx
@@ -27,30 +30,52 @@ type Tx interface {
 func NewTx(ctx context.Context, db *sql.DB) (Tx, error) {
 	tx, err := db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
-		return nil, err
+		return Tx{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 	}
-	return txWrapper{tx}, nil
+	return Tx{tx}, nil
 }
 
-var _ Tx = txWrapper{}
-
-type txWrapper struct {
-	*sql.Tx
-}
-
-// Finalize will commit the transaction if opErr is nil; otherwise it rolls back.
+// Finalize will commit the transaction if err is nil; otherwise it rolls back.
 // It returns any error encountered during commit or rollback.
-func (t txWrapper) Finalize(opErr error) error {
-	if opErr != nil {
-		_ = t.Rollback()
-		return opErr
+func (t Tx) Finalize(err error) error {
+	if err != nil {
+		if err2 := t.Rollback(); err2 != nil {
+			return errors.Join(err, gimpl.ErrDatastoreUnhandled.Wrap(err2).WithStack())
+		}
+		return err
 	}
-	return t.Commit()
+	if err := t.Commit(); err != nil {
+		return gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
+	}
+	return nil
 }
 
 type txOpts struct {
 	Tx           Tx
 	AutoFinalize bool
+}
+
+func TxOpts(ctx context.Context, db *sql.DB, opts any) (txOpts, error) {
+	options, _ := opts.([]TxOpt)
+
+	o := txOpts{}
+
+	// Apply any user-supplied TX first
+	for i := range options {
+		options[i](&o)
+	}
+
+	// If no Tx supplied, begin a new one
+	if o.Tx.Tx == nil {
+		tx, err := NewTx(ctx, db)
+		if err != nil {
+			return o, err
+		}
+		o.Tx = tx
+		o.AutoFinalize = true
+	}
+
+	return o, nil
 }
 
 type TxOpt func(*txOpts)
@@ -68,27 +93,4 @@ func WithTxAutoFinalize() TxOpt {
 	return func(o *txOpts) {
 		o.AutoFinalize = true
 	}
-}
-
-func Opts(ctx context.Context, db *sql.DB, opts any) (txOpts, error) {
-	options, _ := opts.([]TxOpt)
-
-	o := txOpts{}
-
-	// Apply any user-supplied TX first
-	for i := range options {
-		options[i](&o)
-	}
-
-	// If no Tx supplied, begin a new one
-	if o.Tx == nil {
-		tx, err := NewTx(ctx, db)
-		if err != nil {
-			return o, err
-		}
-		o.Tx = tx
-		o.AutoFinalize = true
-	}
-
-	return o, nil
 }

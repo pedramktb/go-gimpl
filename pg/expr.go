@@ -2,29 +2,17 @@ package pgimpl
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/pedramktb/go-gimpl"
+	"github.com/pedramktb/go-tagerr"
 )
 
-// ApplyExprToQuery applies an gimpl.Expr filter to a squirrel SelectBuilder query.
-// If filters.Expr is nil, the query is returned unchanged.
-func ApplyExprToQuery(query squirrel.SelectBuilder, filters gimpl.Expr) (squirrel.SelectBuilder, error) {
-	if filters.Expr == nil {
-		return query, nil
-	}
-	where, err := ExprToQuery(filters)
-	if err != nil {
-		return query, err
-	}
-
-	return query.Where(where), nil
-}
-
-// ExprToQuery converts an gimpl.Expr logical/quantified expression tree into a SQL WHERE fragment
-// and a slice of args (squirrel.Sqlizer)
+// FromExpr converts an gimpl.Expr logical/quantified expression tree into a squirrel.Sqlizer fragment
+// and a slice of args that is compatible with postgres.
 //
 // Conventions implemented:
 //   - A CondExpr whose Field has no dots (e.g. "status") and is NOT nested beneath a quantifier
@@ -36,8 +24,20 @@ func ApplyExprToQuery(query squirrel.SelectBuilder, filters gimpl.Expr) (squirre
 //     jsonb_array_elements(). Nested quantifiers are supported (aliases are generated q0, q1, ...).
 //   - IN / NIN for JSON values rely on the jsonb containment operator '<@'
 //     Column IN / NIN use '= ANY (?)' / '!= ALL (?)' patterns.
-func ExprToQuery(e gimpl.Expr) (squirrel.Sqlizer, error) {
-	b := &builder{}
+func FromExpr(e gimpl.Expr) (squirrel.Sqlizer, error) {
+	if e.Expr == nil {
+		return nil, nil
+	}
+	if e.Sample == nil {
+		return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("Expr.Sample must be set")))
+	}
+	sample, ok := e.Sample.(Entity)
+	if !ok {
+		return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("Expr.Sample must implement pgimpl.Entity interface")))
+	}
+	b := &builder{
+		fieldColumn: sample.Column,
+	}
 	query, args, err := b.build(e.Expr, buildContext{sqlMode: true, sqlFirstLevel: true})
 	if err != nil {
 		return nil, err
@@ -47,8 +47,9 @@ func ExprToQuery(e gimpl.Expr) (squirrel.Sqlizer, error) {
 }
 
 type builder struct {
-	quantDepth int
-	args       []any
+	fieldColumn func(field string) string
+	quantDepth  int
+	args        []any
 }
 
 type buildContext struct {
@@ -88,18 +89,17 @@ func (b *builder) build(expr any, ctx buildContext) (string, []any, error) {
 		}
 		return q, b.args, nil
 	default:
-		return "", nil, fmt.Errorf("unsupported expression node %T", v)
+		return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("unknown expr type %T", expr)))
 	}
 }
 
 // buildQuant decides between SQL array quantification and JSON array quantification based on accumulated path context.
 func (b *builder) buildQuant(qe gimpl.QuantExpr, ctx buildContext) (string, error) {
-	fullPath := combinePath(ctx.fieldPath, qe.Field)
-
+	fullPath := combinePath(ctx.fieldPath, b.fieldColumn(qe.Field))
 	if ctx.sqlMode {
 		if ctx.sqlFirstLevel {
 			if fullPath == "" {
-				return "", gimpl.ErrInvalidExpr
+				return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty sql array field path")))
 			}
 			if strings.Contains(fullPath, ".") {
 				return b.buildJSONQuant(qe, ctx, fullPath)
@@ -128,7 +128,7 @@ func (b *builder) buildColumnQuant(qe gimpl.QuantExpr, ctx buildContext, fullPat
 		arrayExpr = fullPath
 	}
 	if arrayExpr == "" {
-		return "", gimpl.ErrInvalidExpr
+		return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty sql array field path")))
 	}
 
 	childCtx := buildContext{
@@ -149,7 +149,7 @@ func (b *builder) buildColumnQuant(qe gimpl.QuantExpr, ctx buildContext, fullPat
 	case gimpl.QuantOpAll:
 		return fmt.Sprintf("NOT EXISTS (SELECT 1 FROM unnest(%s) AS %s(elem) WHERE NOT (%s))", arrayExpr, alias, nestedSQL), nil
 	default:
-		return "", fmt.Errorf("unknown quantifier %s", qe.Op)
+		return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("unknown quantifier %s", qe.Op)))
 	}
 }
 
@@ -181,18 +181,21 @@ func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, fullPath 
 	case gimpl.QuantOpAll:
 		return fmt.Sprintf("NOT EXISTS (SELECT 1 FROM jsonb_array_elements(%s) AS %s(elem) WHERE NOT (%s))", safeArrayExpr, alias, nestedSQL), nil
 	default:
-		return "", fmt.Errorf("unknown quantifier %s", qe.Op)
+		return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("unknown quantifier %s", qe.Op)))
 	}
 }
 
 // buildCond builds a condition expression.
 func (b *builder) buildCond(c gimpl.CondExpr, ctx buildContext) (string, any, error) {
-	fullPath := combinePath(ctx.fieldPath, c.Field)
-
+	column := b.fieldColumn(c.Field)
+	if column == "" && c.Field != "" {
+		return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q has no associated column", c.Field)))
+	}
+	fullPath := combinePath(ctx.fieldPath, column)
 	if ctx.sqlMode {
 		if ctx.quantAlias == "" {
 			if fullPath == "" {
-				return "", nil, gimpl.ErrInvalidExpr
+				return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty condition field path")))
 			}
 			if strings.Contains(fullPath, ".") {
 				path, err := jsonExpr(ctx, fullPath)
@@ -249,7 +252,7 @@ func jsonExpr(ctx buildContext, targetPath string) (string, error) {
 	if ctx.quantAlias == "" {
 		// Root lookup: first segment references the jsonb column, remainder forms the path.
 		if len(targetSegs) == 0 {
-			return "", gimpl.ErrInvalidExpr
+			return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty json expression path")))
 		}
 		if len(targetSegs) == 1 {
 			return targetSegs[0], nil
@@ -259,7 +262,7 @@ func jsonExpr(ctx buildContext, targetPath string) (string, error) {
 
 	baseSegs := splitPath(ctx.fieldPath)
 	if len(targetSegs) < len(baseSegs) {
-		return "", gimpl.ErrInvalidExpr
+		return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("invalid json expression path")))
 	}
 	// When inside a quantifier, strip the already traversed prefix and build a path relative to the element alias.
 	relSegs := targetSegs[len(baseSegs):]
@@ -296,7 +299,7 @@ func buildJSONCond(path string, op gimpl.CondOp, val any) (query string, arg any
 	case gimpl.CondOpNIN:
 		return "NOT (" + path + " <@ ?::jsonb)", jsonText, nil
 	default:
-		return "", nil, gimpl.ErrInvalidExpr
+		return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("unknown condition operator")))
 	}
 }
 
@@ -329,6 +332,6 @@ func buildColumnCond(col string, op gimpl.CondOp, val any) (string, any, error) 
 	case gimpl.CondOpNIN:
 		return col + " <> ALL (?)", val, nil
 	default:
-		return "", nil, gimpl.ErrInvalidExpr
+		return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("unknown condition operator")))
 	}
 }

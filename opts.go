@@ -1,71 +1,68 @@
 package gimpl
 
 type locateOpts struct {
-	filters Expr
-	search  string
+	Filter Expr
+}
+
+func LocateOpts(opts ...LocateOpt) *locateOpts {
+	o := &locateOpts{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
 }
 
 type LocateOpt func(*locateOpts)
 
-func WithFilter(filters Expr) func(*locateOpts) {
+func WithFilter(filter Expr) func(*locateOpts) {
 	return func(o *locateOpts) {
-		o.filters = filters
+		o.Filter = filter
 	}
-}
-
-func (o *locateOpts) Filter() Expr {
-	return o.filters
-}
-
-func WithSearch(search string) func(*locateOpts) {
-	return func(o *locateOpts) {
-		o.search = search
-	}
-}
-
-func (o *locateOpts) Search() string {
-	return o.search
 }
 
 type paginateOpts struct {
-	limit PaginationLimit
-	sorts Sorts
+	Limit uint64
+	Sorts Sorts
+}
+
+func PaginateOpts(opts ...PaginateOpt) *paginateOpts {
+	o := &paginateOpts{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
 }
 
 type PaginateOpt func(*paginateOpts)
 
-func WithLimit(limit PaginationLimit) func(*paginateOpts) {
+func WithLimit(limit uint64) func(*paginateOpts) {
 	return func(o *paginateOpts) {
-		o.limit = limit
+		o.Limit = limit
 	}
-}
-
-func (o *paginateOpts) Limit() PaginationLimit {
-	return o.limit
 }
 
 func WithSorts[E Entity](sorts Sorts) func(*paginateOpts) {
 	return func(o *paginateOpts) {
-		o.sorts = sorts
+		o.Sorts = sorts
 	}
 }
 
-func (o *paginateOpts) GetSorts() Sorts {
-	return o.sorts
+type txOpts struct {
+	TxOpts []any
 }
 
-type txOpts struct {
-	txOpts []any
+func TxOpts(opts ...TxOpt) *txOpts {
+	o := &txOpts{}
+	for _, opt := range opts {
+		opt(o)
+	}
+	return o
 }
 
 type TxOpt func(*txOpts)
 
 func WithTxOpts(opts ...any) func(*txOpts) {
 	return func(o *txOpts) {
-		o.txOpts = opts
+		o.TxOpts = opts
 	}
-}
-
-func (o *txOpts) TxOpts() []any {
-	return o.txOpts
 }
