@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pedramktb/go-gimpl/internal/pg"
-	pgimpl "github.com/pedramktb/go-gimpl/pg"
 	"github.com/testcontainers/testcontainers-go"
 )
 
@@ -46,7 +45,6 @@ func (e TestEntity) FilterPtr(field string) any {
 		return nil
 	}
 }
-
 func (e TestEntity) SortPtr(field string) any {
 	switch field {
 	case "id":
@@ -57,7 +55,6 @@ func (e TestEntity) SortPtr(field string) any {
 		return nil
 	}
 }
-
 func (e TestEntity) Column(field string) string {
 	switch field {
 	case "id":
@@ -68,11 +65,9 @@ func (e TestEntity) Column(field string) string {
 		return ""
 	}
 }
-
 func (e TestEntity) Columns() []string {
 	return []string{"pg_id", "pg_name"}
 }
-
-func (e TestEntity) NewWithColumnPtrs() (pgimpl.Entity, []any) {
-	return e, []any{&e.ID, &e.Name}
+func (e TestEntity) NewWithColumnPtrs() (any, []any) {
+	return &e, []any{&e.ID, &e.Name}
 }

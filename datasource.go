@@ -18,17 +18,29 @@ var (
 	})
 )
 
-// Get is a datasource function type that can be used for retrieval queries
-type Get[E Entity] func(ctx context.Context, locateOpts []LocateOpt, paginateOpts []PaginateOpt, txOpts ...TxOpt) (Paginated[E], error)
+// Finder is a datasource type that can be used for retrieval queries
+type Finder[E Entity] interface {
+	FindOne(ctx context.Context, filter Expr, txOpts ...TxOpt) (E, error)
+	Find(ctx context.Context, filter Expr, paginateOpts []PaginateOpt, txOpts ...TxOpt) (Paginated[E], error)
+}
 
-// Create is a datasource function type that can be used for creation queries
-type Create[C CreateEntity] func(ctx context.Context, items []C, txOpts ...TxOpt) error
+// Creator is a datasource type that can be used for creation queries
+type Creator[C CreateEntity] interface {
+	Create(ctx context.Context, items []C, txOpts ...TxOpt) error
+}
 
-// Update is a datasource function type that can be used for update queries
-type Update[U UpdateEntity] func(ctx context.Context, items []U, txOpts ...TxOpt) error
+// Updater is a datasource type that can be used for update queries
+type Updater[U UpdateEntity] interface {
+	Update(ctx context.Context, items []U, txOpts ...TxOpt) error
+}
 
-// CreateOrUpdate is a datasource function type that can be used for create‐or‐update queries
-type CreateOrUpdate[CU CreateOrUpdateEntity] func(ctx context.Context, items []CU, txOpts ...TxOpt) error
+// Saver is a datasource type that can be used for create‐or‐update queries
+type Saver[S SaveEntity] interface {
+	Save(ctx context.Context, items []S, txOpts ...TxOpt) error
+}
 
-// Delete is a datasource function type that can be used for deletion queries
-type Delete[E Entity] func(ctx context.Context, locateOpts []LocateOpt, txOpts ...TxOpt) error
+// Remover is a datasource type that can be used for deletion queries
+type Remover[E Entity] interface {
+	RemoveOne(ctx context.Context, filter Expr, txOpts ...TxOpt) error
+	Remove(ctx context.Context, filter Expr, txOpts ...TxOpt) error
+}

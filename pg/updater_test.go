@@ -18,15 +18,12 @@ type TestUpdateEntity struct {
 func (e TestUpdateEntity) IdentifyColumns() []string {
 	return []string{"pg_id"}
 }
-
 func (e TestUpdateEntity) IdentifyColumnVals() []any {
 	return []any{e.ID}
 }
-
 func (e TestUpdateEntity) UpdateColumns() []string {
 	return []string{"pg_name"}
 }
-
 func (e TestUpdateEntity) UpdateColumnVals() []any {
 	return []any{e.Name}
 }
@@ -121,7 +118,7 @@ func Test_Update(t *testing.T) {
 			ids := tc.setup()
 			items := tc.items(ids)
 
-			err := updater(ctx, items)
+			err := updater.Update(ctx, items)
 			if tc.wantErr != nil {
 				require.True(t, tagerr.Is(err, tc.wantErr))
 			} else {

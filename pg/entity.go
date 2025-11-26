@@ -14,7 +14,7 @@ type Entity interface {
 	// NewWithColumnPtrs returns a new entity and a slice of pointers to the fields used for writing to the entity during data retrieval
 	// Returned values should not be dynamic and must correspond to the columns returned by Columns
 	// The reason for creating a new entity is that without pointer receivers, the method cannot modify the original entity
-	NewWithColumnPtrs() (Entity, []any)
+	NewWithColumnPtrs() (any, []any)
 }
 
 // CreateEntity is an extension of gimpl.CreateEntity for Postgres creation operations.
@@ -47,9 +47,9 @@ type UpdateEntity interface {
 	UpdateColumnVals() []any
 }
 
-// CreateOrUpdateEntity is an extension of gimpl.CreateOrUpdateEntity for Postgres create or update operations.
+// SaveEntity is an extension of gimpl.SaveEntity for Postgres create or update operations.
 // DO NOT USE POINTER RECEIVERS
-type CreateOrUpdateEntity interface {
+type SaveEntity interface {
 	CreateEntity
 	UpdateEntity
 }

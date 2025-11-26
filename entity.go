@@ -12,15 +12,17 @@ type Entity interface {
 
 // CreateEntity is the Entity augment used with creation operations.
 // DO NOT USE POINTER RECEIVERS
-type CreateEntity interface{}
+type CreateEntity interface {
+}
 
 // UpdateEntity is the Entity augment used with update operations.
 // DO NOT USE POINTER RECEIVERS
-type UpdateEntity interface{}
+type UpdateEntity interface {
+}
 
-// CreateOrUpdateEntity is the Entity augment used with create or update operations.
+// SaveEntity is the Entity augment used with create or update operations.
 // DO NOT USE POINTER RECEIVERS
-type CreateOrUpdateEntity interface {
+type SaveEntity interface {
 	CreateEntity
 	UpdateEntity
 }

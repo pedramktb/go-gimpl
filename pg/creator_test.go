@@ -18,7 +18,6 @@ type TestCreateEntity struct {
 func (e TestCreateEntity) CreateColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
-
 func (e TestCreateEntity) CreateColumnVals() []any {
 	return []any{e.ID, e.Name}
 }
@@ -50,11 +49,19 @@ func Test_Create(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := creator(ctx, tc.items)
+			err := creator.Create(ctx, tc.items)
 			if tc.wantErr != nil {
 				require.True(t, tagerr.Is(err, tc.wantErr))
 			} else {
 				require.NoError(t, err)
+
+				// Verify all items exist with correct names
+				for _, item := range tc.items {
+					var name string
+					err := db.QueryRowContext(ctx, "SELECT pg_name FROM test_entity WHERE pg_id = $1", item.ID).Scan(&name)
+					require.NoError(t, err)
+					require.Equal(t, item.Name, name)
+				}
 			}
 		})
 	}

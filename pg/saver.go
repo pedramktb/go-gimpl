@@ -10,23 +10,23 @@ import (
 	"github.com/pedramktb/go-gimpl"
 )
 
-type createOrUpdater[CU CreateOrUpdateEntity] struct {
+type saver[S SaveEntity] struct {
 	db    *sql.DB
 	table string
 }
 
 // CreateOrUpdater returns a gimpl.CreateOrUpdate function for the specified entity type and table name
 // CU must implement the CreateOrUpdateEntity interface
-func CreateOrUpdater[CU CreateOrUpdateEntity](db *sql.DB, table string) gimpl.CreateOrUpdate[CU] {
-	return (&createOrUpdater[CU]{db, table}).CreateOrUpdate
+func Saver[S SaveEntity](db *sql.DB, table string) gimpl.Saver[S] {
+	return &saver[S]{db, table}
 }
 
-func (cu *createOrUpdater[CU]) CreateOrUpdate(ctx context.Context, items []CU, txOpts ...gimpl.TxOpt) (err error) {
+func (cu *saver[S]) Save(ctx context.Context, items []S, txOpts ...gimpl.TxOpt) (err error) {
 	if len(items) == 0 {
 		return nil
 	}
 
-	sample := (*new(CU))
+	sample := (*new(S))
 
 	tOpts, err := TxOpts(ctx, cu.db, txOpts)
 	if err != nil {

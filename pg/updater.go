@@ -18,8 +18,8 @@ type updater[U UpdateEntity] struct {
 
 // Updater returns a gimpl.Update function for the specified entity type and table name
 // U must implement the UpdateEntity interface
-func Updater[U UpdateEntity](db *sql.DB, table string) gimpl.Update[U] {
-	return (&updater[U]{db, table}).Update
+func Updater[U UpdateEntity](db *sql.DB, table string) gimpl.Updater[U] {
+	return &updater[U]{db, table}
 }
 
 func (u *updater[U]) Update(ctx context.Context, items []U, txOpts ...gimpl.TxOpt) (err error) {

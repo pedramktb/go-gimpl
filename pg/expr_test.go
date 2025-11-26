@@ -14,11 +14,11 @@ var _ pgimpl.Entity = ExprTestEntity{}
 
 type ExprTestEntity struct{}
 
-func (e ExprTestEntity) FilterPtr(field string) any                { return nil }
-func (e ExprTestEntity) SortPtr(field string) any                  { return nil }
-func (e ExprTestEntity) Column(field string) string                { return "pg_" + field }
-func (e ExprTestEntity) Columns() []string                         { return nil }
-func (e ExprTestEntity) NewWithColumnPtrs() (pgimpl.Entity, []any) { return e, nil }
+func (e ExprTestEntity) FilterPtr(field string) any      { return nil }
+func (e ExprTestEntity) SortPtr(field string) any        { return nil }
+func (e ExprTestEntity) Column(field string) string      { return "pg_" + field }
+func (e ExprTestEntity) Columns() []string               { return nil }
+func (e ExprTestEntity) NewWithColumnPtrs() (any, []any) { return &e, nil }
 
 // helper to get SQL + args from FromExpr
 func toSQL(t *testing.T, e gimpl.Expr) (string, []any) {

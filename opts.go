@@ -2,7 +2,6 @@ package gimpl
 
 type locateOpts struct {
 	Filter Expr
-	Search string
 }
 
 func LocateOpts(opts ...LocateOpt) *locateOpts {
@@ -18,12 +17,6 @@ type LocateOpt func(*locateOpts)
 func WithFilter(filter Expr) func(*locateOpts) {
 	return func(o *locateOpts) {
 		o.Filter = filter
-	}
-}
-
-func WithSearch(search string) func(*locateOpts) {
-	return func(o *locateOpts) {
-		o.Search = search
 	}
 }
 

@@ -20,7 +20,6 @@ type PaginationTestEntity struct {
 }
 
 func (e PaginationTestEntity) FilterPtr(field string) any { return nil }
-
 func (e PaginationTestEntity) SortPtr(field string) any {
 	switch field {
 	case "id":
@@ -35,7 +34,6 @@ func (e PaginationTestEntity) SortPtr(field string) any {
 		return nil
 	}
 }
-
 func (e PaginationTestEntity) Column(field string) string {
 	switch field {
 	case "id":
@@ -50,13 +48,11 @@ func (e PaginationTestEntity) Column(field string) string {
 		return ""
 	}
 }
-
 func (e PaginationTestEntity) Columns() []string {
 	return []string{"pg_id", "pg_name", "pg_score", "pg_active"}
 }
-
-func (e PaginationTestEntity) NewWithColumnPtrs() (pgimpl.Entity, []any) {
-	return e, []any{&e.ID, &e.Name, &e.Score, &e.Active}
+func (e PaginationTestEntity) NewWithColumnPtrs() (any, []any) {
+	return &e, []any{&e.ID, &e.Name, &e.Score, &e.Active}
 }
 
 // helper to get SQL + args from FromSorts
@@ -96,11 +92,12 @@ func TestFromSorts_NoSample(t *testing.T) {
 
 type invalidEntity struct{}
 
+func (invalidEntity) GimplEntity()                             {}
 func (invalidEntity) FilterPtr(field string) any               { return nil }
 func (invalidEntity) SortPtr(field string) any                 { return nil }
 func (invalidEntity) Column(field string) string               { return "" }
 func (invalidEntity) Columns() []string                        { return nil }
-func (invalidEntity) NewWithColumnPtrs() (gimpl.Entity, []any) { return invalidEntity{}, nil }
+func (invalidEntity) NewWithColumnPtrs() (gimpl.Entity, []any) { return &invalidEntity{}, nil }
 
 func TestFromSorts_InvalidSample(t *testing.T) {
 	base := squirrel.Select("*").From("test")

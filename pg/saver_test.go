@@ -9,46 +9,41 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type TestCreateOrUpdateEntity struct {
+type TestSaveEntity struct {
 	ID   uuid.UUID
 	Name string
 }
 
-func (e TestCreateOrUpdateEntity) CreateColumns() []string {
+func (e TestSaveEntity) CreateColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
-
-func (e TestCreateOrUpdateEntity) CreateColumnVals() []any {
+func (e TestSaveEntity) CreateColumnVals() []any {
 	return []any{e.ID, e.Name}
 }
-
-func (e TestCreateOrUpdateEntity) IdentifyColumns() []string {
+func (e TestSaveEntity) IdentifyColumns() []string {
 	return []string{"pg_id"}
 }
-
-func (e TestCreateOrUpdateEntity) IdentifyColumnVals() []any {
+func (e TestSaveEntity) IdentifyColumnVals() []any {
 	return []any{e.ID}
 }
-
-func (e TestCreateOrUpdateEntity) UpdateColumns() []string {
+func (e TestSaveEntity) UpdateColumns() []string {
 	return []string{"pg_name"}
 }
-
-func (e TestCreateOrUpdateEntity) UpdateColumnVals() []any {
+func (e TestSaveEntity) UpdateColumnVals() []any {
 	return []any{e.Name}
 }
 
-func Test_CreateOrUpdate(t *testing.T) {
+func Test_Save(t *testing.T) {
 	ctx := context.Background()
 	db, cleanup := DB(ctx, "pgimpl_test_create_or_update")
 	defer cleanup()
 
-	createOrUpdater := pgimpl.CreateOrUpdater[TestCreateOrUpdateEntity](db, "test_entity")
+	saver := pgimpl.Saver[TestSaveEntity](db, "test_entity")
 
 	tests := []struct {
 		name    string
 		setup   func() []uuid.UUID
-		items   func(ids []uuid.UUID) []TestCreateOrUpdateEntity
+		items   func(ids []uuid.UUID) []TestSaveEntity
 		wantErr bool
 	}{
 		{
@@ -56,8 +51,8 @@ func Test_CreateOrUpdate(t *testing.T) {
 			setup: func() []uuid.UUID {
 				return []uuid.UUID{}
 			},
-			items: func(ids []uuid.UUID) []TestCreateOrUpdateEntity {
-				return []TestCreateOrUpdateEntity{
+			items: func(ids []uuid.UUID) []TestSaveEntity {
+				return []TestSaveEntity{
 					{ID: uuid.New(), Name: "New Item 1"},
 					{ID: uuid.New(), Name: "New Item 2"},
 				}
@@ -73,8 +68,8 @@ func Test_CreateOrUpdate(t *testing.T) {
 				require.NoError(t, err)
 				return []uuid.UUID{id1, id2}
 			},
-			items: func(ids []uuid.UUID) []TestCreateOrUpdateEntity {
-				return []TestCreateOrUpdateEntity{
+			items: func(ids []uuid.UUID) []TestSaveEntity {
+				return []TestSaveEntity{
 					{ID: ids[0], Name: "Updated Name 1"},
 					{ID: ids[1], Name: "Updated Name 2"},
 				}
@@ -89,8 +84,8 @@ func Test_CreateOrUpdate(t *testing.T) {
 				require.NoError(t, err)
 				return []uuid.UUID{id}
 			},
-			items: func(ids []uuid.UUID) []TestCreateOrUpdateEntity {
-				return []TestCreateOrUpdateEntity{
+			items: func(ids []uuid.UUID) []TestSaveEntity {
+				return []TestSaveEntity{
 					{ID: ids[0], Name: "Updated Existing"},
 					{ID: uuid.New(), Name: "New Item"},
 				}
@@ -104,7 +99,7 @@ func Test_CreateOrUpdate(t *testing.T) {
 			ids := tc.setup()
 			items := tc.items(ids)
 
-			err := createOrUpdater(ctx, items)
+			err := saver.Save(ctx, items)
 			if tc.wantErr {
 				require.Error(t, err)
 			} else {

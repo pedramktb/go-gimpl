@@ -15,8 +15,8 @@ type creator[C CreateEntity] struct {
 
 // Creator returns a gimpl.Create function for the specified entity type and table name
 // C must implement the CreateEntity interface
-func Creator[C CreateEntity](db *sql.DB, table string) gimpl.Create[C] {
-	return (&creator[C]{db, table}).Create
+func Creator[C CreateEntity](db *sql.DB, table string) gimpl.Creator[C] {
+	return &creator[C]{db, table}
 }
 
 func (c *creator[C]) Create(ctx context.Context, items []C, txOpts ...gimpl.TxOpt) (err error) {
