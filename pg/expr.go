@@ -188,6 +188,10 @@ func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, fullPath 
 // buildCond builds a condition expression.
 func (b *builder) buildCond(c gimpl.CondExpr, ctx buildContext) (string, any, error) {
 	column := b.fieldColumn(c.Field)
+	if ctx.fieldPath != "" {
+		fields := strings.Split(b.fieldColumn(ctx.fieldPath+"."+c.Field), ".")
+		column = fields[len(fields)-1]
+	}
 	if column == "" && c.Field != "" {
 		return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q has no associated column", c.Field)))
 	}
