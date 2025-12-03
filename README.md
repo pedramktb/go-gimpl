@@ -1,9 +1,12 @@
 # gimpl
-<img src="logo.png" alt="Logo" width="369"/>
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/pedramktb/go-gimpl.svg)](https://pkg.go.dev/github.com/pedramktb/go-gimpl)
+---
+<div align="center"><img src="logo.png" alt="Logo" width="369"/></div>
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedramktb/go-gimpl)](https://goreportcard.com/report/github.com/pedramktb/go-gimpl)
+[![test status](https://github.com/go-gorm/gorm/actions/workflows/tests.yml/badge.svg)](https://github.com/go-gorm/gorm/actions)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Go Reference](https://pkg.go.dev/badge/github.com/pedramktb/go-gimpl.svg)](https://pkg.go.dev/github.com/pedramktb/go-gimpl)
 
 ## Licensing
 
@@ -271,6 +274,10 @@ Join our vibrant Discord community to connect with other go-gimpl users and cont
 [**Join our Discord Server →**](https://discord.com/invite/E863vGG3E)
 
 We're excited to have you as part of our growing community!
+
+## Contributors
+
+[Thank you](https://github.com/pedramktb/go-gimpl/graphs/contributors) for contributing to the Gimpl library!
 
 ---
 ## License
