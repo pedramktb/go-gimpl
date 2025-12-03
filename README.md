@@ -276,7 +276,6 @@ Join our vibrant Discord community to connect with other go-gimpl users and cont
 We're excited to have you as part of our growing community!
 
 ## Contributors
-
 [Thank you](https://github.com/pedramktb/go-gimpl/graphs/contributors) for contributing to the Gimpl library!
 
 ---
