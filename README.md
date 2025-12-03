@@ -268,7 +268,7 @@ Join our vibrant Discord community to connect with other go-gimpl users and cont
 - 📚 **Learn Best Practices**: Exchange tips, patterns, and architectural insights
 - 🎉 **Stay Updated**: Be the first to know about new releases and features
 
-[**Join our Discord Server →**](https://discord.gg/your-invite-link) *(coming soon)*
+[**Join our Discord Server →**](https://discord.com/invite/E863vGG3E)
 
 We're excited to have you as part of our growing community!
 
