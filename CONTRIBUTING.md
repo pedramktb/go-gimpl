@@ -2,10 +2,6 @@
 
 First off, thank you for considering contributing to go-gimpl! It's people like you that make go-gimpl such a great tool.
 
-## Code of Conduct
-
-This project and everyone participating in it is governed by our Code of Conduct. By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
-
 ## How Can I Contribute?
 
 ### Reporting Bugs
@@ -43,6 +39,3 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 - Go 1.23 or higher
 - Docker 
-
-### Setting Up Your Development Environment
-TODO
