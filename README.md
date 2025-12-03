@@ -1,6 +1,5 @@
 # gimpl
 
----
 <div align="center"><img src="logo.png" alt="Logo" width="369"/></div>
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedramktb/go-gimpl)](https://goreportcard.com/report/github.com/pedramktb/go-gimpl)
