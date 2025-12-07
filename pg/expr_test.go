@@ -74,21 +74,21 @@ func toSQL(t *testing.T, e gimpl.Expr) (string, []any) {
 }
 
 func TestFromExpr_SimpleColumn(t *testing.T) {
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpEQ, Val: "active"}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpEQ, Val: "active"}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "pg_status = ?", q)
 	require.Equal(t, []any{"active"}, args)
 }
 
 func TestFromExpr_MissingSample(t *testing.T) {
-	e := gimpl.Expr{Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpEQ, Val: "active"}}
+	e := gimpl.Expr{Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpEQ, Val: "active"}}
 	_, err := pgimpl.FromExpr(e)
 	require.Error(t, err)
 	require.ErrorIs(t, err, gimpl.ErrInvalidExpr)
 }
 
 func TestFromExpr_JSONPathSimple(t *testing.T) {
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal("1")
 	require.Equal(t, "pg_meta #> '{pg_version}' = ?::jsonb", q)
@@ -96,8 +96,8 @@ func TestFromExpr_JSONPathSimple(t *testing.T) {
 }
 
 func TestFromExpr_LogicalAnd(t *testing.T) {
-	left := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpEQ, Val: "active"}}
-	right := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
+	left := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpEQ, Val: "active"}}
+	right := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.LogExpr{Left: left, Op: gimpl.LogOpAnd, Right: right}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal("1")
@@ -106,14 +106,14 @@ func TestFromExpr_LogicalAnd(t *testing.T) {
 }
 
 func TestFromExpr_RegexColumn(t *testing.T) {
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpRE, Val: "^act"}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpRE, Val: "^act"}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "pg_status ~ ?", q)
 	require.Equal(t, []any{"^act"}, args)
 }
 
 func TestFromExpr_RegexJSON(t *testing.T) {
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.name", Op: gimpl.CondOpRE, Val: "^foo"}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.name", Op: gimpl.CondOpRE, Val: "^foo"}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "(pg_meta #> '{pg_name}') #>> '{}' ~ ?", q)
 	require.Equal(t, []any{"^foo"}, args)
@@ -121,7 +121,7 @@ func TestFromExpr_RegexJSON(t *testing.T) {
 
 func TestFromExpr_IN_Column(t *testing.T) {
 	vals := []string{"a", "b"}
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpIN, Val: vals}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpIN, Val: vals}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "pg_status = ANY (?)", q)
 	require.Equal(t, []any{vals}, args)
@@ -129,7 +129,7 @@ func TestFromExpr_IN_Column(t *testing.T) {
 
 func TestFromExpr_NIN_Column(t *testing.T) {
 	vals := []string{"x", "y"}
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "status", Op: gimpl.CondOpNIN, Val: vals}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpNIN, Val: vals}}
 	q, args := toSQL(t, e)
 	require.Equal(t, "pg_status <> ALL (?)", q)
 	require.Equal(t, []any{vals}, args)
@@ -137,7 +137,7 @@ func TestFromExpr_NIN_Column(t *testing.T) {
 
 func TestFromExpr_IN_JSON(t *testing.T) {
 	vals := []int{1, 2}
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.ids", Op: gimpl.CondOpIN, Val: vals}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.ids", Op: gimpl.CondOpIN, Val: vals}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal(vals)
 	require.Equal(t, "pg_meta #> '{pg_ids}' <@ ?::jsonb", q)
@@ -146,8 +146,8 @@ func TestFromExpr_IN_JSON(t *testing.T) {
 
 func TestFromExpr_QuantAny(t *testing.T) {
 	// ANY items where element.id = 1
-	inner := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpEQ, Val: 1}}
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Field: "items", Op: gimpl.QuantOpAny, Expr: inner}}
+	inner := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: 1}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "items", Op: gimpl.QuantOpAny, Expr: inner}}
 	q, args := toSQL(t, e)
 	marshaledOne, _ := json.Marshal(1)
 	expected := "EXISTS (SELECT 1 FROM unnest(pg_items) AS q0(elem) WHERE q0.elem #> '{pg_id}' = ?::jsonb)"
@@ -156,8 +156,8 @@ func TestFromExpr_QuantAny(t *testing.T) {
 }
 
 func TestFromExpr_QuantAll(t *testing.T) {
-	inner := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpGT, Val: 10}}
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Field: "items", Op: gimpl.QuantOpAll, Expr: inner}}
+	inner := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpGT, Val: 10}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "items", Op: gimpl.QuantOpAll, Expr: inner}}
 	q, args := toSQL(t, e)
 	marshaledTen, _ := json.Marshal(10)
 	expected := "NOT EXISTS (SELECT 1 FROM unnest(pg_items) AS q0(elem) WHERE NOT (q0.elem #> '{pg_id}' > ?::jsonb))"
@@ -167,9 +167,9 @@ func TestFromExpr_QuantAll(t *testing.T) {
 
 func TestFromExpr_NestedQuantifiers(t *testing.T) {
 	// ANY items where ALL sub.id eq 5
-	deepest := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpEQ, Val: 5}}
-	allSub := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Field: "sub", Op: gimpl.QuantOpAll, Expr: deepest}}
-	anyItems := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Field: "items", Op: gimpl.QuantOpAny, Expr: allSub}}
+	deepest := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: 5}}
+	allSub := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "sub", Op: gimpl.QuantOpAll, Expr: deepest}}
+	anyItems := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "items", Op: gimpl.QuantOpAny, Expr: allSub}}
 	q, args := toSQL(t, anyItems)
 	marshaledFive, _ := json.Marshal(5)
 	// Validate structural pieces instead of full exact string to reduce brittleness
@@ -180,7 +180,7 @@ func TestFromExpr_NestedQuantifiers(t *testing.T) {
 }
 
 func TestFromExpr_InvalidOperator(t *testing.T) {
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "name", Op: gimpl.CondOp("bogus"), Val: 1}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "name", Op: gimpl.CondOp("bogus"), Val: 1}}
 	_, err := pgimpl.FromExpr(e)
 	require.Error(t, err)
 	require.ErrorIs(t, err, gimpl.ErrInvalidExpr)
@@ -201,7 +201,7 @@ func TestFromExpr_NoExpr(t *testing.T) {
 
 func TestApplyFromExpr_WithExpr(t *testing.T) {
 	base := squirrel.Select("pg_id").From("table")
-	filters := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "name", Op: gimpl.CondOpEQ, Val: "active"}}
+	filters := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "name", Op: gimpl.CondOpEQ, Val: "active"}}
 	filter, err := pgimpl.FromExpr(filters)
 	out := base.Where(filter)
 	require.NoError(t, err)

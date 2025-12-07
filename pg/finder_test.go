@@ -33,9 +33,9 @@ func Test_FindOne(t *testing.T) {
 		{
 			name: "find existing entity by id",
 			filter: gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-				Field: "id",
-				Op:    gimpl.CondOpEQ,
-				Val:   id1,
+				Path: "id",
+				Op:   gimpl.CondOpEQ,
+				Val:  id1,
 			}},
 			want:    TestEntity{ID: id1, Name: "Test 1"},
 			wantErr: nil,
@@ -43,9 +43,9 @@ func Test_FindOne(t *testing.T) {
 		{
 			name: "find existing entity by name",
 			filter: gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-				Field: "name",
-				Op:    gimpl.CondOpEQ,
-				Val:   "Test 2",
+				Path: "name",
+				Op:   gimpl.CondOpEQ,
+				Val:  "Test 2",
 			}},
 			want:    TestEntity{ID: id2, Name: "Test 2"},
 			wantErr: nil,
@@ -53,9 +53,9 @@ func Test_FindOne(t *testing.T) {
 		{
 			name: "find non-existent entity",
 			filter: gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-				Field: "id",
-				Op:    gimpl.CondOpEQ,
-				Val:   uuid.New(),
+				Path: "id",
+				Op:   gimpl.CondOpEQ,
+				Val:  uuid.New(),
 			}},
 			want:    TestEntity{},
 			wantErr: tagerr.ErrNotFound,
@@ -120,9 +120,9 @@ func Test_Find(t *testing.T) {
 		{
 			name: "get with filter",
 			filter: gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-				Field: "id",
-				Op:    gimpl.CondOpEQ,
-				Val:   id1,
+				Path: "id",
+				Op:   gimpl.CondOpEQ,
+				Val:  id1,
 			}},
 			paginateOpt:    []gimpl.PaginateOpt{gimpl.WithLimit(10)},
 			wantTotalCount: 1,

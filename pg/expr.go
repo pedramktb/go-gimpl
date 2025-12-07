@@ -94,7 +94,7 @@ func (b *builder) build(expr any, ctx buildContext) (string, []any, error) {
 
 // buildQuant decides between SQL array quantification and JSON array quantification based on accumulated path context.
 func (b *builder) buildQuant(qe gimpl.QuantExpr, ctx buildContext) (string, error) {
-	sample, subPath, err := buildQuantPath(ctx.sample, qe.Field)
+	sample, subPath, err := buildQuantPath(ctx.sample, qe.Path)
 	if err != nil {
 		return "", err
 	}
@@ -119,26 +119,29 @@ func (b *builder) buildQuant(qe gimpl.QuantExpr, ctx buildContext) (string, erro
 	return b.buildJSONQuant(qe, ctx, sample, fullPath)
 }
 
-func buildQuantPath(sample any, field string) (any, []string, error) {
-	if field == "" {
+func buildQuantPath(sample any, path string) (any, []string, error) {
+	if path == "" {
 		return sample, nil, nil
 	}
-	fields := strings.Split(field, ".")
-	path := make([]string, 0, len(fields))
+	fields := strings.Split(path, ".")
+	sqlPath := make([]string, 0, len(fields))
 	for i := range fields {
 		entitySample, ok := sample.(Entity)
 		if !ok {
+			if i > 0 {
+				return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q is not an entity", fields[i], path)))
+			}
 			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q is not an entity", fields[i])))
 		}
 		sample = entitySample.FilterPtr(fields[i])
 		if sample == nil {
-			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], field)))
+			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], path)))
 		}
 		part := entitySample.Column(fields[i])
 		if part == "" {
-			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], field)))
+			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))
 		}
-		path = append(path, part)
+		sqlPath = append(sqlPath, part)
 	}
 	t := reflect.TypeOf(sample)
 	if t.Kind() == reflect.Pointer {
@@ -146,10 +149,10 @@ func buildQuantPath(sample any, field string) (any, []string, error) {
 	}
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-		return nil, nil, fmt.Errorf("field %q in path %q is not an array or slice", fields[len(fields)-1], field)
+		return nil, nil, fmt.Errorf("field %q in path %q is not an array or slice", fields[len(fields)-1], path)
 	}
 
-	return reflect.New(t.Elem()).Interface(), path, nil
+	return reflect.New(t.Elem()).Interface(), sqlPath, nil
 
 }
 
@@ -226,7 +229,7 @@ func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, sample an
 
 // buildCond builds a condition expression.
 func (b *builder) buildCond(c gimpl.CondExpr, ctx buildContext) (string, any, error) {
-	subPath, err := buildCondPath(ctx.sample, c.Field)
+	subPath, err := buildCondPath(ctx.sample, c.Path)
 	if err != nil {
 		return "", nil, err
 	}
@@ -290,25 +293,28 @@ func jsonExpr(ctx buildContext, targetPath []string) (string, error) {
 	return ctx.quantAlias + " #> '{" + strings.Join(relSegs, ",") + "}'", nil
 }
 
-func buildCondPath(sample any, field string) ([]string, error) {
-	if field == "" {
+func buildCondPath(sample any, path string) ([]string, error) {
+	if path == "" {
 		return nil, nil
 	}
-	fields := strings.Split(field, ".")
-	path := make([]string, 0, len(fields))
+	fields := strings.Split(path, ".")
+	sqlPath := make([]string, 0, len(fields))
 	for i := range fields {
 		entitySample, ok := sample.(Entity)
 		if !ok {
-			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q is not an entity", fields[i])))
+			if i > 0 {
+				return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q is not an entity", fields[i], path)))
+			}
+			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q in path %q is not an entity", fields[i], path)))
 		}
 		sample = entitySample.FilterPtr(fields[i])
 		part := entitySample.Column(fields[i])
 		if part == "" {
-			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], field)))
+			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))
 		}
-		path = append(path, part)
+		sqlPath = append(sqlPath, part)
 	}
-	return path, nil
+	return sqlPath, nil
 }
 
 // buildJSONCond Compares JSON values using jsonb operators for the condition expression.
