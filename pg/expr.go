@@ -149,7 +149,7 @@ func buildQuantPath(sample any, path string) (any, []string, error) {
 	}
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-		return nil, nil, fmt.Errorf("field %q in path %q is not an array or slice", fields[len(fields)-1], path)
+		return nil, nil, tagerr.ErrInternal.Wrap(fmt.Errorf("field %q in path %q is not an array or slice", fields[len(fields)-1], path))
 	}
 
 	return reflect.New(t.Elem()).Interface(), sqlPath, nil
@@ -247,7 +247,6 @@ func (b *builder) buildCond(c gimpl.CondExpr, ctx buildContext) (string, any, er
 				return buildJSONCond(path, c.Op, c.Val)
 			}
 			return buildColumnCond(fullPath[0], c.Op, c.Val)
-			// combinePath joins the accumulated parent fieldPath with the current relative field name.
 		}
 
 		if !slices.Equal(fullPath, ctx.fieldPath) {
@@ -308,6 +307,9 @@ func buildCondPath(sample any, path string) ([]string, error) {
 			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q in path %q is not an entity", fields[i], path)))
 		}
 		sample = entitySample.FilterPtr(fields[i])
+		if sample == nil {
+			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], path)))
+		}
 		part := entitySample.Column(fields[i])
 		if part == "" {
 			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))

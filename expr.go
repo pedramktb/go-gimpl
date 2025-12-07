@@ -169,15 +169,14 @@ func decodeExpr(src json.RawMessage, root any) (any, error) {
 
 func resolveVal(root any, op CondOp, path string) (any, error) {
 	if path != "" {
-		segments := strings.SplitSeq(path, ".")
-		for seg := range segments {
+		for field := range strings.SplitSeq(path, ".") {
 			ent, ok := root.(Entity)
 			if !ok {
-				return nil, fmt.Errorf("field %q in path %q is not an entity", seg, path)
+				return nil, fmt.Errorf("field %q in path %q is not an entity", field, path)
 			}
-			root = ent.FilterPtr(seg)
+			root = ent.FilterPtr(field)
 			if root == nil {
-				return nil, fmt.Errorf("field %q in path %q not found", seg, path)
+				return nil, fmt.Errorf("field %q in path %q not found", field, path)
 			}
 		}
 	}
@@ -190,17 +189,18 @@ func resolveVal(root any, op CondOp, path string) (any, error) {
 	return root, nil
 }
 
-func resolveArrayElem(root any, field string) (any, error) {
-	segments := strings.SplitSeq(field, ".")
-	for seg := range segments {
+func resolveArrayElem(root any, path string) (any, error) {
+	last := path
+	for field := range strings.SplitSeq(path, ".") {
 		ent, ok := root.(Entity)
 		if !ok {
-			return nil, fmt.Errorf("field %q in path %q is not an entity", seg, field)
+			return nil, fmt.Errorf("field %q in path %q is not an entity", field, path)
 		}
-		root = ent.FilterPtr(seg)
+		root = ent.FilterPtr(field)
 		if root == nil {
-			return nil, fmt.Errorf("field %q in path %q not found", seg, field)
+			return nil, fmt.Errorf("field %q in path %q not found", field, path)
 		}
+		last = field
 	}
 
 	t := reflect.TypeOf(root)
@@ -209,7 +209,7 @@ func resolveArrayElem(root any, field string) (any, error) {
 	}
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-		return nil, fmt.Errorf("field %q is not an array or slice", field)
+		return nil, fmt.Errorf("field %q in path %q is not an array or slice", last, path)
 	}
 
 	return reflect.New(t.Elem()).Interface(), nil
