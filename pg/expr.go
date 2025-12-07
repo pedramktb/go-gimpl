@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
@@ -35,10 +37,7 @@ func FromExpr(e gimpl.Expr) (squirrel.Sqlizer, error) {
 	if !ok {
 		return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("Expr.Sample must implement pgimpl.Entity interface")))
 	}
-	b := &builder{
-		fieldColumn: sample.Column,
-	}
-	query, args, err := b.build(e.Expr, buildContext{sqlMode: true, sqlFirstLevel: true})
+	query, args, err := (&builder{}).build(e.Expr, buildContext{sample: sample, sqlMode: true, sqlFirstLevel: true})
 	if err != nil {
 		return nil, err
 	}
@@ -47,15 +46,15 @@ func FromExpr(e gimpl.Expr) (squirrel.Sqlizer, error) {
 }
 
 type builder struct {
-	fieldColumn func(field string) string
-	quantDepth  int
-	args        []any
+	quantDepth int
+	args       []any
 }
 
 type buildContext struct {
+	sample        any
 	sqlMode       bool
 	sqlFirstLevel bool
-	fieldPath     string
+	fieldPath     []string
 	quantAlias    string
 }
 
@@ -95,29 +94,67 @@ func (b *builder) build(expr any, ctx buildContext) (string, []any, error) {
 
 // buildQuant decides between SQL array quantification and JSON array quantification based on accumulated path context.
 func (b *builder) buildQuant(qe gimpl.QuantExpr, ctx buildContext) (string, error) {
-	fullPath := combinePath(ctx.fieldPath, b.fieldColumn(qe.Field))
+	sample, subPath, err := buildQuantPath(ctx.sample, qe.Field)
+	if err != nil {
+		return "", err
+	}
+	fullPath := append(ctx.fieldPath, subPath...)
 	if ctx.sqlMode {
 		if ctx.sqlFirstLevel {
-			if fullPath == "" {
+			if len(fullPath) == 0 {
 				return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty sql array field path")))
 			}
-			if strings.Contains(fullPath, ".") {
-				return b.buildJSONQuant(qe, ctx, fullPath)
+			if len(fullPath) > 1 {
+				return b.buildJSONQuant(qe, ctx, sample, fullPath)
 			}
-			return b.buildColumnQuant(qe, ctx, fullPath)
+			return b.buildColumnQuant(qe, ctx, sample, fullPath[0])
 		}
 
-		if qe.Field == "" {
-			return b.buildColumnQuant(qe, ctx, fullPath)
+		if len(subPath) == 0 {
+			return b.buildColumnQuant(qe, ctx, sample, fullPath[0])
 		}
-		return b.buildJSONQuant(qe, ctx, fullPath)
+		return b.buildJSONQuant(qe, ctx, sample, fullPath)
 	}
 
-	return b.buildJSONQuant(qe, ctx, fullPath)
+	return b.buildJSONQuant(qe, ctx, sample, fullPath)
+}
+
+func buildQuantPath(sample any, field string) (any, []string, error) {
+	if field == "" {
+		return sample, nil, nil
+	}
+	fields := strings.Split(field, ".")
+	path := make([]string, 0, len(fields))
+	for i := range fields {
+		entitySample, ok := sample.(Entity)
+		if !ok {
+			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q is not an entity", fields[i])))
+		}
+		sample = entitySample.FilterPtr(fields[i])
+		if sample == nil {
+			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], field)))
+		}
+		part := entitySample.Column(fields[i])
+		if part == "" {
+			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], field)))
+		}
+		path = append(path, part)
+	}
+	t := reflect.TypeOf(sample)
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+
+	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
+		return nil, nil, fmt.Errorf("field %q in path %q is not an array or slice", fields[len(fields)-1], field)
+	}
+
+	return reflect.New(t.Elem()).Interface(), path, nil
+
 }
 
 // buildColumnQuant emits EXISTS / NOT EXISTS checks that iterate native Postgres arrays with unnest().
-func (b *builder) buildColumnQuant(qe gimpl.QuantExpr, ctx buildContext, fullPath string) (string, error) {
+func (b *builder) buildColumnQuant(qe gimpl.QuantExpr, ctx buildContext, sample any, fullPath string) (string, error) {
 	alias := fmt.Sprintf("q%d", b.quantDepth)
 	b.quantDepth++
 
@@ -132,9 +169,10 @@ func (b *builder) buildColumnQuant(qe gimpl.QuantExpr, ctx buildContext, fullPat
 	}
 
 	childCtx := buildContext{
+		sample:        sample,
 		sqlMode:       true,
 		sqlFirstLevel: false,
-		fieldPath:     fullPath,
+		fieldPath:     []string{fullPath},
 		quantAlias:    alias + ".elem",
 	}
 
@@ -153,7 +191,7 @@ func (b *builder) buildColumnQuant(qe gimpl.QuantExpr, ctx buildContext, fullPat
 	}
 }
 
-func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, fullPath string) (string, error) {
+func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, sample any, fullPath []string) (string, error) {
 	alias := fmt.Sprintf("q%d", b.quantDepth)
 	b.quantDepth++
 
@@ -163,6 +201,7 @@ func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, fullPath 
 	}
 
 	childCtx := buildContext{
+		sample:        sample,
 		sqlMode:       false,
 		sqlFirstLevel: false,
 		fieldPath:     fullPath,
@@ -187,32 +226,28 @@ func (b *builder) buildJSONQuant(qe gimpl.QuantExpr, ctx buildContext, fullPath 
 
 // buildCond builds a condition expression.
 func (b *builder) buildCond(c gimpl.CondExpr, ctx buildContext) (string, any, error) {
-	column := b.fieldColumn(c.Field)
-	if ctx.fieldPath != "" {
-		fields := strings.Split(b.fieldColumn(ctx.fieldPath+"."+c.Field), ".")
-		column = fields[len(fields)-1]
+	subPath, err := buildCondPath(ctx.sample, c.Field)
+	if err != nil {
+		return "", nil, err
 	}
-	if column == "" && c.Field != "" {
-		return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q has no associated column", c.Field)))
-	}
-	fullPath := combinePath(ctx.fieldPath, column)
+	fullPath := append(ctx.fieldPath, subPath...)
 	if ctx.sqlMode {
 		if ctx.quantAlias == "" {
-			if fullPath == "" {
+			if len(fullPath) == 0 {
 				return "", nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty condition field path")))
 			}
-			if strings.Contains(fullPath, ".") {
+			if len(fullPath) > 1 {
 				path, err := jsonExpr(ctx, fullPath)
 				if err != nil {
 					return "", nil, err
 				}
 				return buildJSONCond(path, c.Op, c.Val)
 			}
-			return buildColumnCond(fullPath, c.Op, c.Val)
+			return buildColumnCond(fullPath[0], c.Op, c.Val)
 			// combinePath joins the accumulated parent fieldPath with the current relative field name.
 		}
 
-		if fullPath != ctx.fieldPath {
+		if !slices.Equal(fullPath, ctx.fieldPath) {
 			path, err := jsonExpr(ctx, fullPath)
 			if err != nil {
 				return "", nil, err
@@ -230,50 +265,50 @@ func (b *builder) buildCond(c gimpl.CondExpr, ctx buildContext) (string, any, er
 	return buildJSONCond(path, c.Op, c.Val)
 }
 
-func combinePath(prefix, field string) string {
-	switch {
-	case prefix == "":
-		return field
-	case field == "":
-		return prefix
-	default:
-		return prefix + "." + field
-	}
-}
-
-func splitPath(path string) []string {
-	if path == "" {
-		return nil
-	}
-	return strings.Split(path, ".")
-}
-
 // jsonExpr resolves the jsonb expression to access targetPath relative to the current context.
 // It keeps track of whether we are operating on a root column or a nested array element alias.
-func jsonExpr(ctx buildContext, targetPath string) (string, error) {
-	targetSegs := splitPath(targetPath)
-
+func jsonExpr(ctx buildContext, targetPath []string) (string, error) {
 	if ctx.quantAlias == "" {
 		// Root lookup: first segment references the jsonb column, remainder forms the path.
-		if len(targetSegs) == 0 {
+		if len(targetPath) == 0 {
 			return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("empty json expression path")))
 		}
-		if len(targetSegs) == 1 {
-			return targetSegs[0], nil
+		if len(targetPath) == 1 {
+			return targetPath[0], nil
 		}
-		return targetSegs[0] + " #> '{" + strings.Join(targetSegs[1:], ",") + "}'", nil
+		return targetPath[0] + " #> '{" + strings.Join(targetPath[1:], ",") + "}'", nil
 	}
 
-	baseSegs := splitPath(ctx.fieldPath)
-	if len(targetSegs) < len(baseSegs) {
+	if len(targetPath) < len(ctx.fieldPath) {
 		return "", tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(errors.New("invalid json expression path")))
 	}
 	// When inside a quantifier, strip the already traversed prefix and build a path relative to the element alias.
-	relSegs := targetSegs[len(baseSegs):]
+	relSegs := targetPath[len(ctx.fieldPath):]
 	if len(relSegs) == 0 {
 		return ctx.quantAlias, nil
 	}
 	return ctx.quantAlias + " #> '{" + strings.Join(relSegs, ",") + "}'", nil
+}
+
+func buildCondPath(sample any, field string) ([]string, error) {
+	if field == "" {
+		return nil, nil
+	}
+	fields := strings.Split(field, ".")
+	path := make([]string, 0, len(fields))
+	for i := range fields {
+		entitySample, ok := sample.(Entity)
+		if !ok {
+			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q is not an entity", fields[i])))
+		}
+		sample = entitySample.FilterPtr(fields[i])
+		part := entitySample.Column(fields[i])
+		if part == "" {
+			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], field)))
+		}
+		path = append(path, part)
+	}
+	return path, nil
 }
 
 // buildJSONCond Compares JSON values using jsonb operators for the condition expression.

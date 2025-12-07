@@ -12,13 +12,56 @@ import (
 
 var _ pgimpl.Entity = ExprTestEntity{}
 
-type ExprTestEntity struct{}
+type ExprTestEntity struct {
+	Meta  ExprTestEntityMeta
+	Items []ExprTestEntityItem
+}
 
-func (e ExprTestEntity) FilterPtr(field string) any      { return nil }
+func (e ExprTestEntity) FilterPtr(field string) any {
+	switch field {
+	case "meta":
+		return &e.Meta
+	case "items":
+		return &e.Items
+	}
+	return nil
+}
 func (e ExprTestEntity) SortPtr(field string) any        { return nil }
 func (e ExprTestEntity) Column(field string) string      { return "pg_" + field }
 func (e ExprTestEntity) Columns() []string               { return nil }
 func (e ExprTestEntity) NewWithColumnPtrs() (any, []any) { return &e, nil }
+
+type ExprTestEntityMeta struct{}
+
+func (e ExprTestEntityMeta) FilterPtr(field string) any      { return nil }
+func (e ExprTestEntityMeta) SortPtr(field string) any        { return nil }
+func (e ExprTestEntityMeta) Column(field string) string      { return "pg_" + field }
+func (e ExprTestEntityMeta) Columns() []string               { return nil }
+func (e ExprTestEntityMeta) NewWithColumnPtrs() (any, []any) { return &e, nil }
+
+type ExprTestEntityItem struct {
+	Sub []ExprTestEntityItemSub
+}
+
+func (e ExprTestEntityItem) FilterPtr(field string) any {
+	switch field {
+	case "sub":
+		return &e.Sub
+	}
+	return nil
+}
+func (e ExprTestEntityItem) SortPtr(field string) any        { return nil }
+func (e ExprTestEntityItem) Column(field string) string      { return "pg_" + field }
+func (e ExprTestEntityItem) Columns() []string               { return nil }
+func (e ExprTestEntityItem) NewWithColumnPtrs() (any, []any) { return &e, nil }
+
+type ExprTestEntityItemSub struct{}
+
+func (e ExprTestEntityItemSub) FilterPtr(field string) any      { return nil }
+func (e ExprTestEntityItemSub) SortPtr(field string) any        { return nil }
+func (e ExprTestEntityItemSub) Column(field string) string      { return "pg_" + field }
+func (e ExprTestEntityItemSub) Columns() []string               { return nil }
+func (e ExprTestEntityItemSub) NewWithColumnPtrs() (any, []any) { return &e, nil }
 
 // helper to get SQL + args from FromExpr
 func toSQL(t *testing.T, e gimpl.Expr) (string, []any) {
@@ -48,7 +91,7 @@ func TestFromExpr_JSONPathSimple(t *testing.T) {
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal("1")
-	require.Equal(t, "pg_meta #> '{version}' = ?::jsonb", q)
+	require.Equal(t, "pg_meta #> '{pg_version}' = ?::jsonb", q)
 	require.Equal(t, []any{marshaled}, args)
 }
 
@@ -58,7 +101,7 @@ func TestFromExpr_LogicalAnd(t *testing.T) {
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.LogExpr{Left: left, Op: gimpl.LogOpAnd, Right: right}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal("1")
-	require.Equal(t, "(pg_status = ? AND pg_meta #> '{version}' = ?::jsonb)", q)
+	require.Equal(t, "(pg_status = ? AND pg_meta #> '{pg_version}' = ?::jsonb)", q)
 	require.Equal(t, []any{"active", marshaled}, args)
 }
 
@@ -72,7 +115,7 @@ func TestFromExpr_RegexColumn(t *testing.T) {
 func TestFromExpr_RegexJSON(t *testing.T) {
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.name", Op: gimpl.CondOpRE, Val: "^foo"}}
 	q, args := toSQL(t, e)
-	require.Equal(t, "(pg_meta #> '{name}') #>> '{}' ~ ?", q)
+	require.Equal(t, "(pg_meta #> '{pg_name}') #>> '{}' ~ ?", q)
 	require.Equal(t, []any{"^foo"}, args)
 }
 
@@ -97,7 +140,7 @@ func TestFromExpr_IN_JSON(t *testing.T) {
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Field: "meta.ids", Op: gimpl.CondOpIN, Val: vals}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal(vals)
-	require.Equal(t, "pg_meta #> '{ids}' <@ ?::jsonb", q)
+	require.Equal(t, "pg_meta #> '{pg_ids}' <@ ?::jsonb", q)
 	require.Equal(t, []any{marshaled}, args)
 }
 
