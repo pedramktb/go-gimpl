@@ -41,7 +41,7 @@ func WithLimit(limit uint64) func(*paginateOpts) {
 	}
 }
 
-func WithSorts[E Entity](sorts Sorts) func(*paginateOpts) {
+func WithSorts(sorts Sorts) func(*paginateOpts) {
 	return func(o *paginateOpts) {
 		o.Sorts = sorts
 	}

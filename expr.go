@@ -73,18 +73,18 @@ type LogExpr struct {
 	Right Expr
 }
 
-// QuantExpr is a quantifier expression that applies a nested expression relative to each element in an array field.
+// QuantExpr is a quantifier expression that applies a nested expression relative to each element in an array path.
 type QuantExpr struct {
-	Field string
-	Op    QuantOp
-	Expr  Expr
+	Path string
+	Op   QuantOp
+	Expr Expr
 }
 
 // CondExpr is a Condition expression (field comparison).
 type CondExpr struct {
-	Field string
-	Op    CondOp
-	Val   any
+	Path string
+	Op   CondOp
+	Val  any
 }
 
 // UnmarshalJSON unmarshal for top-level Expr. Delegates to decodeExpr with root entity context.
@@ -129,55 +129,54 @@ func decodeExpr(src json.RawMessage, root any) (any, error) {
 	}
 	if CondOp(probe.Op).isValid() {
 		var tmp struct {
-			Field string          `json:"field"`
-			Op    CondOp          `json:"op"`
-			Val   json.RawMessage `json:"val"`
+			Path string          `json:"path"`
+			Op   CondOp          `json:"op"`
+			Val  json.RawMessage `json:"val"`
 		}
 		if err := json.Unmarshal(src, &tmp); err != nil {
 			return nil, err
 		}
-		val, err := resolveVal(root, tmp.Op, tmp.Field)
+		val, err := resolveVal(root, tmp.Op, tmp.Path)
 		if err != nil {
-			return nil, fmt.Errorf("resolving condition field %q: %w", tmp.Field, err)
+			return nil, fmt.Errorf("resolving condition path %q: %w", tmp.Path, err)
 		}
 		if err := json.Unmarshal(tmp.Val, val); err != nil {
-			return nil, fmt.Errorf("condition value for field %q: %w", tmp.Field, err)
+			return nil, fmt.Errorf("condition value for path %q: %w", tmp.Path, err)
 		}
-		return CondExpr{Field: tmp.Field, Op: tmp.Op, Val: reflect.ValueOf(val).Elem().Interface()}, nil
+		return CondExpr{Path: tmp.Path, Op: tmp.Op, Val: reflect.ValueOf(val).Elem().Interface()}, nil
 	}
 	if QuantOp(probe.Op).isValid() {
 		var tmp struct {
-			Field string          `json:"field"`
-			Op    QuantOp         `json:"op"`
-			Expr  json.RawMessage `json:"expr"`
+			Path string          `json:"path"`
+			Op   QuantOp         `json:"op"`
+			Expr json.RawMessage `json:"expr"`
 		}
 		if err := json.Unmarshal(src, &tmp); err != nil {
 			return nil, err
 		}
-		elem, err := resolveArrayElem(root, tmp.Field)
+		elem, err := resolveArrayElem(root, tmp.Path)
 		if err != nil {
-			return nil, fmt.Errorf("quantifier field %q: %w", tmp.Field, err)
+			return nil, fmt.Errorf("quantifier path %q: %w", tmp.Path, err)
 		}
 		nested, err := decodeExpr(tmp.Expr, elem)
 		if err != nil {
 			return nil, err
 		}
-		return QuantExpr{Field: tmp.Field, Op: tmp.Op, Expr: Expr{Expr: nested}}, nil
+		return QuantExpr{Path: tmp.Path, Op: tmp.Op, Expr: Expr{Expr: nested}}, nil
 	}
 	return nil, fmt.Errorf("invalid operator %q", probe.Op)
 }
 
-func resolveVal(root any, op CondOp, field string) (any, error) {
-	if field != "" {
-		segments := strings.SplitSeq(field, ".")
-		for seg := range segments {
+func resolveVal(root any, op CondOp, path string) (any, error) {
+	if path != "" {
+		for field := range strings.SplitSeq(path, ".") {
 			ent, ok := root.(Entity)
 			if !ok {
-				return nil, fmt.Errorf("field %q in %q is not an entity", seg, field)
+				return nil, fmt.Errorf("field %q in path %q is not an entity", field, path)
 			}
-			root = ent.FilterPtr(seg)
+			root = ent.FilterPtr(field)
 			if root == nil {
-				return nil, fmt.Errorf("field %q not found", field)
+				return nil, fmt.Errorf("field %q in path %q not found", field, path)
 			}
 		}
 	}
@@ -190,17 +189,18 @@ func resolveVal(root any, op CondOp, field string) (any, error) {
 	return root, nil
 }
 
-func resolveArrayElem(root any, field string) (any, error) {
-	segments := strings.SplitSeq(field, ".")
-	for seg := range segments {
+func resolveArrayElem(root any, path string) (any, error) {
+	last := path
+	for field := range strings.SplitSeq(path, ".") {
 		ent, ok := root.(Entity)
 		if !ok {
-			return nil, fmt.Errorf("field %q in %q is not an entity", seg, field)
+			return nil, fmt.Errorf("field %q in path %q is not an entity", field, path)
 		}
-		root = ent.FilterPtr(seg)
+		root = ent.FilterPtr(field)
 		if root == nil {
-			return nil, fmt.Errorf("field %q not found", field)
+			return nil, fmt.Errorf("field %q in path %q not found", field, path)
 		}
+		last = field
 	}
 
 	t := reflect.TypeOf(root)
@@ -209,7 +209,7 @@ func resolveArrayElem(root any, field string) (any, error) {
 	}
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-		return nil, fmt.Errorf("field %q is not an array or slice", field)
+		return nil, fmt.Errorf("field %q in path %q is not an array or slice", last, path)
 	}
 
 	return reflect.New(t.Elem()).Interface(), nil

@@ -34,9 +34,9 @@ func Test_RemoveOne(t *testing.T) {
 			},
 			filter: func(id uuid.UUID) gimpl.Expr {
 				return gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-					Field: "id",
-					Op:    gimpl.CondOpEQ,
-					Val:   id,
+					Path: "id",
+					Op:   gimpl.CondOpEQ,
+					Val:  id,
 				}}
 			},
 			wantErr: nil,
@@ -46,9 +46,9 @@ func Test_RemoveOne(t *testing.T) {
 			setup: func() uuid.UUID { return uuid.Nil },
 			filter: func(id uuid.UUID) gimpl.Expr {
 				return gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-					Field: "id",
-					Op:    gimpl.CondOpEQ,
-					Val:   uuid.New(),
+					Path: "id",
+					Op:   gimpl.CondOpEQ,
+					Val:  uuid.New(),
 				}}
 			},
 			wantErr: tagerr.ErrNotFound,
@@ -75,9 +75,9 @@ func Test_RemoveOne(t *testing.T) {
 			},
 			filter: func(id uuid.UUID) gimpl.Expr {
 				return gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{
-					Field: "name",
-					Op:    gimpl.CondOpEQ,
-					Val:   "Same Name",
+					Path: "name",
+					Op:   gimpl.CondOpEQ,
+					Val:  "Same Name",
 				}}
 			},
 			wantErr: gimpl.ErrDatastoreUnhandled,
@@ -129,14 +129,14 @@ func Test_Remove(t *testing.T) {
 				_, err := db.ExecContext(ctx, "INSERT INTO test_entity (pg_id, pg_name) VALUES ($1, $2)", id1, "Delete Me")
 				require.NoError(t, err)
 			},
-			filter:  gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpEQ, Val: id1}},
+			filter:  gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: id1}},
 			wantErr: nil,
 		},
 		{
 			name:    "delete non-existent",
 			id:      id2,
 			setup:   func() {},
-			filter:  gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{Field: "id", Op: gimpl.CondOpEQ, Val: id2}},
+			filter:  gimpl.Expr{Sample: TestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: id2}},
 			wantErr: nil,
 		},
 		{
