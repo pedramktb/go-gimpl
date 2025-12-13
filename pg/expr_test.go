@@ -19,6 +19,8 @@ type ExprTestEntity struct {
 
 func (e ExprTestEntity) FilterPtr(field string) any {
 	switch field {
+	case "name", "status":
+		return &struct{}{}
 	case "meta":
 		return &e.Meta
 	case "items":
@@ -33,7 +35,13 @@ func (e ExprTestEntity) NewWithColumnPtrs() (any, []any) { return &e, nil }
 
 type ExprTestEntityMeta struct{}
 
-func (e ExprTestEntityMeta) FilterPtr(field string) any      { return nil }
+func (e ExprTestEntityMeta) FilterPtr(field string) any {
+	switch field {
+	case "name", "id", "version":
+		return &struct{}{}
+	}
+	return nil
+}
 func (e ExprTestEntityMeta) SortPtr(field string) any        { return nil }
 func (e ExprTestEntityMeta) Column(field string) string      { return "pg_" + field }
 func (e ExprTestEntityMeta) Columns() []string               { return nil }
@@ -45,6 +53,8 @@ type ExprTestEntityItem struct {
 
 func (e ExprTestEntityItem) FilterPtr(field string) any {
 	switch field {
+	case "id":
+		return &struct{}{}
 	case "sub":
 		return &e.Sub
 	}
@@ -57,7 +67,13 @@ func (e ExprTestEntityItem) NewWithColumnPtrs() (any, []any) { return &e, nil }
 
 type ExprTestEntityItemSub struct{}
 
-func (e ExprTestEntityItemSub) FilterPtr(field string) any      { return nil }
+func (e ExprTestEntityItemSub) FilterPtr(field string) any {
+	switch field {
+	case "id":
+		return &struct{}{}
+	}
+	return nil
+}
 func (e ExprTestEntityItemSub) SortPtr(field string) any        { return nil }
 func (e ExprTestEntityItemSub) Column(field string) string      { return "pg_" + field }
 func (e ExprTestEntityItemSub) Columns() []string               { return nil }
@@ -96,8 +112,8 @@ func TestFromExpr_JSONPathSimple(t *testing.T) {
 }
 
 func TestFromExpr_LogicalAnd(t *testing.T) {
-	left := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpEQ, Val: "active"}}
-	right := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
+	left := gimpl.Expr{Expr: gimpl.CondExpr{Path: "status", Op: gimpl.CondOpEQ, Val: "active"}}
+	right := gimpl.Expr{Expr: gimpl.CondExpr{Path: "meta.version", Op: gimpl.CondOpEQ, Val: "1"}}
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.LogExpr{Left: left, Op: gimpl.LogOpAnd, Right: right}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal("1")
@@ -137,16 +153,16 @@ func TestFromExpr_NIN_Column(t *testing.T) {
 
 func TestFromExpr_IN_JSON(t *testing.T) {
 	vals := []int{1, 2}
-	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.ids", Op: gimpl.CondOpIN, Val: vals}}
+	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "meta.id", Op: gimpl.CondOpIN, Val: vals}}
 	q, args := toSQL(t, e)
 	marshaled, _ := json.Marshal(vals)
-	require.Equal(t, "pg_meta #> '{pg_ids}' <@ ?::jsonb", q)
+	require.Equal(t, "pg_meta #> '{pg_id}' <@ ?::jsonb", q)
 	require.Equal(t, []any{marshaled}, args)
 }
 
 func TestFromExpr_QuantAny(t *testing.T) {
 	// ANY items where element.id = 1
-	inner := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: 1}}
+	inner := gimpl.Expr{Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: 1}}
 	e := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "items", Op: gimpl.QuantOpAny, Expr: inner}}
 	q, args := toSQL(t, e)
 	marshaledOne, _ := json.Marshal(1)
@@ -167,8 +183,8 @@ func TestFromExpr_QuantAll(t *testing.T) {
 
 func TestFromExpr_NestedQuantifiers(t *testing.T) {
 	// ANY items where ALL sub.id eq 5
-	deepest := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: 5}}
-	allSub := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "sub", Op: gimpl.QuantOpAll, Expr: deepest}}
+	deepest := gimpl.Expr{Expr: gimpl.CondExpr{Path: "id", Op: gimpl.CondOpEQ, Val: 5}}
+	allSub := gimpl.Expr{Expr: gimpl.QuantExpr{Path: "sub", Op: gimpl.QuantOpAll, Expr: deepest}}
 	anyItems := gimpl.Expr{Sample: ExprTestEntity{}, Expr: gimpl.QuantExpr{Path: "items", Op: gimpl.QuantOpAny, Expr: allSub}}
 	q, args := toSQL(t, anyItems)
 	marshaledFive, _ := json.Marshal(5)
