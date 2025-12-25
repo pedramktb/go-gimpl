@@ -284,7 +284,7 @@ func generateCommonMethods(buf *bytes.Buffer, s structInfo) {
 
 	if isEntity {
 		// SortPtr
-		fmt.Fprintf(buf, "func (e *%s) SortPtr(field string) any {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) SortPtr(field string) any {\n", s.Name)
 		fmt.Fprintf(buf, "\tswitch field {\n")
 		for _, f := range s.Fields {
 			if f.Sort {
@@ -295,7 +295,7 @@ func generateCommonMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\t}\n\treturn nil\n}\n\n")
 
 		// FilterPtr
-		fmt.Fprintf(buf, "func (e *%s) FilterPtr(field string) any {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) FilterPtr(field string) any {\n", s.Name)
 		fmt.Fprintf(buf, "\tswitch field {\n")
 		for _, f := range s.Fields {
 			if f.Filter {
@@ -312,7 +312,7 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 
 	if set.IsEntity {
 		// PgColumn
-		fmt.Fprintf(buf, "func (e *%s) PgColumn(field string) string {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) PgColumn(field string) string {\n", s.Name)
 		fmt.Fprintf(buf, "\tswitch field {\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
@@ -322,7 +322,7 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\t}\n\treturn \"\"\n}\n\n")
 
 		// PgColumns
-		fmt.Fprintf(buf, "func (e *%s) PgColumns() []string {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) PgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
@@ -331,7 +331,7 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\t}\n}\n\n")
 
 		// NewWithPgColumnPtrs
-		fmt.Fprintf(buf, "func (e *%s) NewWithPgColumnPtrs() (any, []any) {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) NewWithPgColumnPtrs() (any, []any) {\n", s.Name)
 		fmt.Fprintf(buf, "\tn := &%s{}\n", s.Name)
 		fmt.Fprintf(buf, "\treturn n, []any{\n")
 		for _, f := range s.Fields {
@@ -342,7 +342,7 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 
 	if set.IsCreate {
 		// CreatePgColumns
-		fmt.Fprintf(buf, "func (e *%s) CreatePgColumns() []string {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) CreatePgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
@@ -353,12 +353,12 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\t}\n}\n\n")
 
 		// CreatePgColumnVals
-		fmt.Fprintf(buf, "func (e *%s) CreatePgColumnVals() []any {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) CreatePgColumnVals() []any {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []any{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
 			if pgInfo.Create {
-				fmt.Fprintf(buf, "\t\t&e.%s,\n", f.Name)
+				fmt.Fprintf(buf, "\t\te.%s,\n", f.Name)
 			}
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
@@ -366,7 +366,7 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 
 	if set.IsUpdate {
 		// IdentifyPgColumns
-		fmt.Fprintf(buf, "func (e *%s) IdentifyPgColumns() []string {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) IdentifyPgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
@@ -377,18 +377,18 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\t}\n}\n\n")
 
 		// IdentifyPgColumnVals
-		fmt.Fprintf(buf, "func (e *%s) IdentifyPgColumnVals() []any {\n", s.Name)
+		fmt.Fprintf(buf, "func (e s) IdentifyPgColumnVals() []any {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []any{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
 			if pgInfo.Identify {
-				fmt.Fprintf(buf, "\t\t&e.%s,\n", f.Name)
+				fmt.Fprintf(buf, "\t\te.%s,\n", f.Name)
 			}
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
 
 		// UpdatePgColumns
-		fmt.Fprintf(buf, "func (e *%s) UpdatePgColumns() []string {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) UpdatePgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
@@ -399,12 +399,12 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\t}\n}\n\n")
 
 		// UpdatePgColumnVals
-		fmt.Fprintf(buf, "func (e *%s) UpdatePgColumnVals() []any {\n", s.Name)
+		fmt.Fprintf(buf, "func (e %s) UpdatePgColumnVals() []any {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []any{\n")
 		for _, f := range s.Fields {
 			pgInfo := f.Impls["pgimpl"]
 			if pgInfo.Update {
-				fmt.Fprintf(buf, "\t\t&e.%s,\n", f.Name)
+				fmt.Fprintf(buf, "\t\te.%s,\n", f.Name)
 			}
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
