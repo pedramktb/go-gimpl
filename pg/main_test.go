@@ -55,7 +55,7 @@ func (e TestEntity) SortPtr(field string) any {
 		return nil
 	}
 }
-func (e TestEntity) Column(field string) string {
+func (e TestEntity) PgColumn(field string) string {
 	switch field {
 	case "id":
 		return "pg_id"
@@ -65,9 +65,9 @@ func (e TestEntity) Column(field string) string {
 		return ""
 	}
 }
-func (e TestEntity) Columns() []string {
+func (e TestEntity) PgColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
-func (e TestEntity) NewWithColumnPtrs() (any, []any) {
+func (e TestEntity) NewWithPgColumnPtrs() (any, []any) {
 	return &e, []any{&e.ID, &e.Name}
 }

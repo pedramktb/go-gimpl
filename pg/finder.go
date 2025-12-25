@@ -31,7 +31,7 @@ func (f *finder[E]) FindOne(ctx context.Context, filter gimpl.Expr, txOpts ...gi
 		defer func() { err = tOpts.Tx.Finalize(err) }()
 	}
 
-	builder := squirrel.Select(sample.Columns()...).PlaceholderFormat(squirrel.Dollar).From(f.table)
+	builder := squirrel.Select(sample.PgColumns()...).PlaceholderFormat(squirrel.Dollar).From(f.table)
 	sqlFilter, err := FromExpr(filter)
 	if err != nil {
 		return sample, err
@@ -40,7 +40,7 @@ func (f *finder[E]) FindOne(ctx context.Context, filter gimpl.Expr, txOpts ...gi
 	if err != nil {
 		return sample, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 	}
-	e, ptrs := sample.NewWithColumnPtrs()
+	e, ptrs := sample.NewWithPgColumnPtrs()
 	if err = tOpts.Tx.QueryRowContext(ctx, query, args...).Scan(ptrs...); errors.Is(err, sql.ErrNoRows) {
 		return sample, tagerr.ErrNotFound
 	} else if err != nil {
@@ -59,7 +59,7 @@ func (f *finder[E]) Find(ctx context.Context, filter gimpl.Expr, paginateOpts []
 		defer func() { err = tOpts.Tx.Finalize(err) }()
 	}
 
-	builder := squirrel.Select((*new(E)).Columns()...).PlaceholderFormat(squirrel.Dollar).From(f.table)
+	builder := squirrel.Select((*new(E)).PgColumns()...).PlaceholderFormat(squirrel.Dollar).From(f.table)
 	sqlFilter, err := FromExpr(filter)
 	if err != nil {
 		return gimpl.Paginated[E]{}, err
@@ -132,7 +132,7 @@ func (f *finder[E]) fetch(ctx context.Context, tOpts txOpts, query string, args 
 
 	var results []E
 	for rows.Next() {
-		e, ptrs := (*new(E)).NewWithColumnPtrs()
+		e, ptrs := (*new(E)).NewWithPgColumnPtrs()
 		err := rows.Scan(ptrs...)
 		if err != nil {
 			return nil, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()

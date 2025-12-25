@@ -32,9 +32,9 @@ func (c *creator[C]) Create(ctx context.Context, items []C, txOpts ...gimpl.TxOp
 		defer func() { err = tOpts.Tx.Finalize(err) }()
 	}
 
-	builder := squirrel.Insert(c.table).PlaceholderFormat(squirrel.Dollar).Columns((*new(C)).CreateColumns()...)
+	builder := squirrel.Insert(c.table).PlaceholderFormat(squirrel.Dollar).Columns((*new(C)).CreatePgColumns()...)
 	for i := range items {
-		builder = builder.Values(items[i].CreateColumnVals()...)
+		builder = builder.Values(items[i].CreatePgColumnVals()...)
 	}
 	query, args, err := builder.ToSql()
 	if err != nil {

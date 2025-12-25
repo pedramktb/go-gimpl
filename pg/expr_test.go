@@ -28,10 +28,10 @@ func (e ExprTestEntity) FilterPtr(field string) any {
 	}
 	return nil
 }
-func (e ExprTestEntity) SortPtr(field string) any        { return nil }
-func (e ExprTestEntity) Column(field string) string      { return "pg_" + field }
-func (e ExprTestEntity) Columns() []string               { return nil }
-func (e ExprTestEntity) NewWithColumnPtrs() (any, []any) { return &e, nil }
+func (e ExprTestEntity) SortPtr(field string) any          { return nil }
+func (e ExprTestEntity) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntity) PgColumns() []string               { return nil }
+func (e ExprTestEntity) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
 type ExprTestEntityMeta struct{}
 
@@ -42,10 +42,10 @@ func (e ExprTestEntityMeta) FilterPtr(field string) any {
 	}
 	return nil
 }
-func (e ExprTestEntityMeta) SortPtr(field string) any        { return nil }
-func (e ExprTestEntityMeta) Column(field string) string      { return "pg_" + field }
-func (e ExprTestEntityMeta) Columns() []string               { return nil }
-func (e ExprTestEntityMeta) NewWithColumnPtrs() (any, []any) { return &e, nil }
+func (e ExprTestEntityMeta) SortPtr(field string) any          { return nil }
+func (e ExprTestEntityMeta) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntityMeta) PgColumns() []string               { return nil }
+func (e ExprTestEntityMeta) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
 type ExprTestEntityItem struct {
 	Sub []ExprTestEntityItemSub
@@ -60,10 +60,10 @@ func (e ExprTestEntityItem) FilterPtr(field string) any {
 	}
 	return nil
 }
-func (e ExprTestEntityItem) SortPtr(field string) any        { return nil }
-func (e ExprTestEntityItem) Column(field string) string      { return "pg_" + field }
-func (e ExprTestEntityItem) Columns() []string               { return nil }
-func (e ExprTestEntityItem) NewWithColumnPtrs() (any, []any) { return &e, nil }
+func (e ExprTestEntityItem) SortPtr(field string) any          { return nil }
+func (e ExprTestEntityItem) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntityItem) PgColumns() []string               { return nil }
+func (e ExprTestEntityItem) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
 type ExprTestEntityItemSub struct{}
 
@@ -74,10 +74,10 @@ func (e ExprTestEntityItemSub) FilterPtr(field string) any {
 	}
 	return nil
 }
-func (e ExprTestEntityItemSub) SortPtr(field string) any        { return nil }
-func (e ExprTestEntityItemSub) Column(field string) string      { return "pg_" + field }
-func (e ExprTestEntityItemSub) Columns() []string               { return nil }
-func (e ExprTestEntityItemSub) NewWithColumnPtrs() (any, []any) { return &e, nil }
+func (e ExprTestEntityItemSub) SortPtr(field string) any          { return nil }
+func (e ExprTestEntityItemSub) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntityItemSub) PgColumns() []string               { return nil }
+func (e ExprTestEntityItemSub) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
 // helper to get SQL + args from FromExpr
 func toSQL(t *testing.T, e gimpl.Expr) (string, []any) {

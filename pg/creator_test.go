@@ -15,10 +15,10 @@ type TestCreateEntity struct {
 	Name string
 }
 
-func (e TestCreateEntity) CreateColumns() []string {
+func (e TestCreateEntity) CreatePgColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
-func (e TestCreateEntity) CreateColumnVals() []any {
+func (e TestCreateEntity) CreatePgColumnVals() []any {
 	return []any{e.ID, e.Name}
 }
 

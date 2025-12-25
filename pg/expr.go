@@ -137,7 +137,7 @@ func buildQuantPath(sample any, path string) (any, []string, error) {
 		if sample == nil {
 			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], path)))
 		}
-		part := entitySample.Column(fields[i])
+		part := entitySample.PgColumn(fields[i])
 		if part == "" {
 			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))
 		}
@@ -310,7 +310,7 @@ func buildCondPath(sample any, path string) ([]string, error) {
 		if sample == nil {
 			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], path)))
 		}
-		part := entitySample.Column(fields[i])
+		part := entitySample.PgColumn(fields[i])
 		if part == "" {
 			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))
 		}
