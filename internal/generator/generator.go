@@ -9,7 +9,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"unicode"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -54,8 +53,7 @@ func Generate(root string) error {
 								content := after
 
 								set := impls[target]
-								parts := strings.SplitSeq(content, ",")
-								for part := range parts {
+								for part := range strings.SplitSeq(content, ",") {
 									switch strings.TrimSpace(part) {
 									case "Entity":
 										set.IsEntity = true
@@ -115,14 +113,19 @@ type structInfo struct {
 	Impls  map[string]InterfaceSet
 }
 
-type fieldInfo struct {
-	Name       string
+type fieldImplInfo struct {
 	ColumnName string
-	Sort       bool
-	Filter     bool
 	Identify   bool
 	Update     bool
 	Create     bool
+}
+
+type fieldInfo struct {
+	Name      string
+	FieldName string
+	Sort      bool
+	Filter    bool
+	Impls     map[string]fieldImplInfo
 }
 
 func parseStruct(name string, st *ast.StructType, impls map[string]InterfaceSet) structInfo {
@@ -153,11 +156,15 @@ func parseStruct(name string, st *ast.StructType, impls map[string]InterfaceSet)
 		tagValue := strings.Trim(field.Tag.Value, "`")
 		tag := reflect.StructTag(tagValue)
 		gimplTag := tag.Get("gimpl")
-		if gimplTag == "" {
+		pgimplTag := tag.Get("pgimpl")
+
+		if gimplTag == "" && pgimplTag == "" {
 			continue
 		}
 
-		fInfo := fieldInfo{}
+		fInfo := fieldInfo{
+			Impls: make(map[string]fieldImplInfo),
+		}
 		if len(field.Names) > 0 {
 			fInfo.Name = field.Names[0].Name
 		} else {
@@ -169,59 +176,72 @@ func parseStruct(name string, st *ast.StructType, impls map[string]InterfaceSet)
 			}
 		}
 
-		parts := strings.Split(gimplTag, ";")
-		for _, part := range parts {
-			kv := strings.Split(part, ":")
-			key := strings.TrimSpace(kv[0])
-			val := ""
-			if len(kv) > 1 {
-				val = strings.TrimSpace(kv[1])
-			}
+		// Parse gimpl tag
+		if gimplTag != "" {
+			for part := range strings.SplitSeq(gimplTag, ";") {
+				kv := strings.Split(part, ":")
+				key := strings.TrimSpace(kv[0])
+				val := ""
+				if len(kv) > 1 {
+					val = strings.TrimSpace(kv[1])
+				}
 
-			switch key {
-			case "column":
-				fInfo.ColumnName = val
-			case "sort":
-				if isEntity {
-					fInfo.Sort = true
-				}
-			case "filter":
-				if isEntity {
-					fInfo.Filter = true
-				}
-			case "identify":
-				if isUpdate {
-					fInfo.Identify = true
-				}
-			case "update":
-				if isUpdate {
-					fInfo.Update = true
-				}
-			case "create":
-				if isCreate {
-					fInfo.Create = true
+				switch key {
+				case "field":
+					fInfo.FieldName = val
+				case "sort":
+					if isEntity {
+						fInfo.Sort = true
+					}
+				case "filter":
+					if isEntity {
+						fInfo.Filter = true
+					}
 				}
 			}
 		}
 
-		if fInfo.ColumnName == "" {
-			fInfo.ColumnName = toSnakeCase(fInfo.Name)
+		// Parse pgimpl tag
+		pgInfo := fieldImplInfo{}
+		if pgimplTag != "" {
+			for part := range strings.SplitSeq(pgimplTag, ";") {
+				kv := strings.Split(part, ":")
+				key := strings.TrimSpace(kv[0])
+				val := ""
+				if len(kv) > 1 {
+					val = strings.TrimSpace(kv[1])
+				}
+
+				switch key {
+				case "column":
+					pgInfo.ColumnName = val
+				case "identify":
+					if isUpdate {
+						pgInfo.Identify = true
+					}
+				case "update":
+					if isUpdate {
+						pgInfo.Update = true
+					}
+				case "create":
+					if isCreate {
+						pgInfo.Create = true
+					}
+				}
+			}
 		}
+
+		if fInfo.FieldName == "" {
+			continue
+		}
+		if pgInfo.ColumnName == "" {
+			pgInfo.ColumnName = fInfo.FieldName
+		}
+		fInfo.Impls["pgimpl"] = pgInfo
 
 		info.Fields = append(info.Fields, fInfo)
 	}
 	return info
-}
-
-func toSnakeCase(s string) string {
-	var res []rune
-	for i, r := range s {
-		if i > 0 && unicode.IsUpper(r) {
-			res = append(res, '_')
-		}
-		res = append(res, unicode.ToLower(r))
-	}
-	return string(res)
 }
 
 func generateFile(originalFile, pkgName string, structs []structInfo) error {
@@ -268,7 +288,7 @@ func generateCommonMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\tswitch field {\n")
 		for _, f := range s.Fields {
 			if f.Sort {
-				fmt.Fprintf(buf, "\tcase \"%s\":\n", f.ColumnName)
+				fmt.Fprintf(buf, "\tcase \"%s\":\n", f.FieldName)
 				fmt.Fprintf(buf, "\t\treturn &e.%s\n", f.Name)
 			}
 		}
@@ -279,7 +299,7 @@ func generateCommonMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "\tswitch field {\n")
 		for _, f := range s.Fields {
 			if f.Filter {
-				fmt.Fprintf(buf, "\tcase \"%s\":\n", f.ColumnName)
+				fmt.Fprintf(buf, "\tcase \"%s\":\n", f.FieldName)
 				fmt.Fprintf(buf, "\t\treturn &e.%s\n", f.Name)
 			}
 		}
@@ -295,8 +315,9 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) PgColumn(field string) string {\n", s.Name)
 		fmt.Fprintf(buf, "\tswitch field {\n")
 		for _, f := range s.Fields {
-			fmt.Fprintf(buf, "\tcase \"%s\":\n", f.Name)
-			fmt.Fprintf(buf, "\t\treturn \"%s\"\n", f.ColumnName)
+			pgInfo := f.Impls["pgimpl"]
+			fmt.Fprintf(buf, "\tcase \"%s\":\n", f.FieldName)
+			fmt.Fprintf(buf, "\t\treturn \"%s\"\n", pgInfo.ColumnName)
 		}
 		fmt.Fprintf(buf, "\t}\n\treturn \"\"\n}\n\n")
 
@@ -304,7 +325,8 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) PgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
-			fmt.Fprintf(buf, "\t\t\"%s\",\n", f.ColumnName)
+			pgInfo := f.Impls["pgimpl"]
+			fmt.Fprintf(buf, "\t\t\"%s\",\n", pgInfo.ColumnName)
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
 
@@ -323,8 +345,9 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) CreatePgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
-			if f.Create {
-				fmt.Fprintf(buf, "\t\t\"%s\",\n", f.ColumnName)
+			pgInfo := f.Impls["pgimpl"]
+			if pgInfo.Create {
+				fmt.Fprintf(buf, "\t\t\"%s\",\n", pgInfo.ColumnName)
 			}
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
@@ -333,7 +356,8 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) CreatePgColumnVals() []any {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []any{\n")
 		for _, f := range s.Fields {
-			if f.Create {
+			pgInfo := f.Impls["pgimpl"]
+			if pgInfo.Create {
 				fmt.Fprintf(buf, "\t\t&e.%s,\n", f.Name)
 			}
 		}
@@ -345,8 +369,9 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) IdentifyPgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
-			if f.Identify {
-				fmt.Fprintf(buf, "\t\t\"%s\",\n", f.ColumnName)
+			pgInfo := f.Impls["pgimpl"]
+			if pgInfo.Identify {
+				fmt.Fprintf(buf, "\t\t\"%s\",\n", pgInfo.ColumnName)
 			}
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
@@ -355,7 +380,8 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) IdentifyPgColumnVals() []any {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []any{\n")
 		for _, f := range s.Fields {
-			if f.Identify {
+			pgInfo := f.Impls["pgimpl"]
+			if pgInfo.Identify {
 				fmt.Fprintf(buf, "\t\t&e.%s,\n", f.Name)
 			}
 		}
@@ -365,8 +391,9 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) UpdatePgColumns() []string {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []string{\n")
 		for _, f := range s.Fields {
-			if f.Update {
-				fmt.Fprintf(buf, "\t\t\"%s\",\n", f.ColumnName)
+			pgInfo := f.Impls["pgimpl"]
+			if pgInfo.Update {
+				fmt.Fprintf(buf, "\t\t\"%s\",\n", pgInfo.ColumnName)
 			}
 		}
 		fmt.Fprintf(buf, "\t}\n}\n\n")
@@ -375,7 +402,8 @@ func generatePgMethods(buf *bytes.Buffer, s structInfo) {
 		fmt.Fprintf(buf, "func (e *%s) UpdatePgColumnVals() []any {\n", s.Name)
 		fmt.Fprintf(buf, "\treturn []any{\n")
 		for _, f := range s.Fields {
-			if f.Update {
+			pgInfo := f.Impls["pgimpl"]
+			if pgInfo.Update {
 				fmt.Fprintf(buf, "\t\t&e.%s,\n", f.Name)
 			}
 		}
