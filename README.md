@@ -91,13 +91,13 @@ type Entity interface {
 type Entity interface {
     gimpl.Entity
     Column(field string) string           // Maps field to column name
-    Columns() []string                     // Returns all columns for SELECT
+    Columns() []string                    // Returns all columns for SELECT
     NewWithColumnPtrs() (any, []any)      // Creates instance with scan pointers
 }
 
 type CreateEntity interface {
     gimpl.CreateEntity
-    CreateColumns() []string               // Columns for INSERT
+    CreateColumns() []string              // Columns for INSERT
     CreateColumnVals() []any              // Values for INSERT
 }
 
