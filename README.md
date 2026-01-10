@@ -90,23 +90,23 @@ type Entity interface {
 ```go
 type Entity interface {
     gimpl.Entity
-    Column(field string) string           // Maps field to column name
-    Columns() []string                    // Returns all columns for SELECT
-    NewWithColumnPtrs() (any, []any)      // Creates instance with scan pointers
+    PgColumn(field string) string           // Maps field to column name
+    PgColumns() []string                    // Returns all columns for SELECT
+    NewWithPgColumnPtrs() (any, []any)      // Creates instance with scan pointers
 }
 
 type CreateEntity interface {
     gimpl.CreateEntity
-    CreateColumns() []string              // Columns for INSERT
-    CreateColumnVals() []any              // Values for INSERT
+    CreatePgColumns() []string              // Columns for INSERT
+    CreatePgColumnVals() []any              // Values for INSERT
 }
 
 type UpdateEntity interface {
     gimpl.UpdateEntity
-    IdentifyColumns() []string            // Columns to identify record (e.g., ID)
-    IdentifyColumnVals() []any            // Values to identify record
-    UpdateColumns() []string              // Columns to update
-    UpdateColumnVals() []any              // Values to update
+    IdentifyPgColumns() []string            // Columns to identify record (e.g., ID)
+    IdentifyPgColumnVals() []any            // Values to identify record
+    UpdatePgColumns() []string              // Columns to update
+    UpdatePgColumnVals() []any              // Values to update
 }
 ```
 

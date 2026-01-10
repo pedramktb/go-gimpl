@@ -1,8 +1,8 @@
-version: '3'
+version: "3"
 
 tasks:
   default:
-   cmds:
+    cmds:
       - task --list
 
   deps:
@@ -20,3 +20,20 @@ tasks:
     desc: Run tests
     cmds:
       - go test ./...
+
+  build:
+    desc: Build the CLI tool
+    cmds:
+      - go build -o build/gimpl ./cmd/gimpl/*.go
+    sources:
+      - Taskfile.yml
+      - "**/*.go"
+    generates:
+      - build/gimpl
+
+  gimpl:
+    desc: Run the gimpl CLI tool
+    deps:
+      - build
+    cmds:
+      - build/gimpl {{.CLI_ARGS}}

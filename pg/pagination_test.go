@@ -34,7 +34,7 @@ func (e PaginationTestEntity) SortPtr(field string) any {
 		return nil
 	}
 }
-func (e PaginationTestEntity) Column(field string) string {
+func (e PaginationTestEntity) PgColumn(field string) string {
 	switch field {
 	case "id":
 		return "pg_id"
@@ -48,10 +48,10 @@ func (e PaginationTestEntity) Column(field string) string {
 		return ""
 	}
 }
-func (e PaginationTestEntity) Columns() []string {
+func (e PaginationTestEntity) PgColumns() []string {
 	return []string{"pg_id", "pg_name", "pg_score", "pg_active"}
 }
-func (e PaginationTestEntity) NewWithColumnPtrs() (any, []any) {
+func (e PaginationTestEntity) NewWithPgColumnPtrs() (any, []any) {
 	return &e, []any{&e.ID, &e.Name, &e.Score, &e.Active}
 }
 

@@ -23,25 +23,25 @@ func FromSorts(s gimpl.Sorts, query squirrel.SelectBuilder) (_ squirrel.SelectBu
 		return squirrel.SelectBuilder{}, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidSorting.Wrap(errors.New("Sorts.Sample must implement pgimpl.Entity interface")))
 	}
 	rev := query
-	if cursorCond, err := cursorQuery(s, sample.Column); err != nil {
+	if cursorCond, err := cursorQuery(s, sample.PgColumn); err != nil {
 		return squirrel.SelectBuilder{}, nil, err
 	} else if cursorCond != nil {
 		query = query.Where(cursorCond)
 	}
 	if len(s.Sorts) > 0 && s.Sorts[0].CursorPart != nil {
 		rs := s.Reverse()
-		if reverseCond, err := cursorQuery(rs, sample.Column); err != nil {
+		if reverseCond, err := cursorQuery(rs, sample.PgColumn); err != nil {
 			return squirrel.SelectBuilder{}, nil, err
 		} else if reverseCond != nil {
 			rev = rev.Where(reverseCond)
 		}
-		r, err := orderQuery(rs, rev, sample.Column)
+		r, err := orderQuery(rs, rev, sample.PgColumn)
 		if err != nil {
 			return squirrel.SelectBuilder{}, nil, err
 		}
 		reverse = &r
 	}
-	query, err = orderQuery(s, query, sample.Column)
+	query, err = orderQuery(s, query, sample.PgColumn)
 	if err != nil {
 		return squirrel.SelectBuilder{}, nil, err
 	}

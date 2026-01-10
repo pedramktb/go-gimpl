@@ -42,8 +42,8 @@ func (u *updater[U]) Update(ctx context.Context, items []U, txOpts ...gimpl.TxOp
 	var orConditions []squirrel.Sqlizer
 	for i := range items {
 		andConditions := squirrel.And{}
-		for j := range sample.IdentifyColumns() {
-			andConditions = append(andConditions, squirrel.Eq{sample.IdentifyColumns()[j]: items[i].IdentifyColumnVals()[j]})
+		for j := range sample.IdentifyPgColumns() {
+			andConditions = append(andConditions, squirrel.Eq{sample.IdentifyPgColumns()[j]: items[i].IdentifyPgColumnVals()[j]})
 		}
 		orConditions = append(orConditions, andConditions)
 	}
@@ -62,14 +62,14 @@ func (u *updater[U]) Update(ctx context.Context, items []U, txOpts ...gimpl.TxOp
 
 	// Using INSERT...ON CONFLICT to perform upsert: updates existing records (creation should not happen since existence was checked above)
 	builder := squirrel.Insert(u.table).PlaceholderFormat(squirrel.Dollar).
-		Columns(append(sample.IdentifyColumns(), sample.UpdateColumns()...)...)
+		Columns(append(sample.IdentifyPgColumns(), sample.UpdatePgColumns()...)...)
 	for i := range items {
-		builder = builder.Values(append(items[i].IdentifyColumnVals(), items[i].UpdateColumnVals()...)...)
+		builder = builder.Values(append(items[i].IdentifyPgColumnVals(), items[i].UpdatePgColumnVals()...)...)
 	}
-	builder = builder.Suffix("ON CONFLICT (" + strings.Join(sample.IdentifyColumns(), ",") +
+	builder = builder.Suffix("ON CONFLICT (" + strings.Join(sample.IdentifyPgColumns(), ",") +
 		") DO UPDATE SET " + strings.Join(func() []string {
-		setClauses := make([]string, len(sample.UpdateColumns()))
-		for i, c := range sample.UpdateColumns() {
+		setClauses := make([]string, len(sample.UpdatePgColumns()))
+		for i, c := range sample.UpdatePgColumns() {
 			setClauses[i] = fmt.Sprintf("%s=EXCLUDED.%s", c, c)
 		}
 		return setClauses

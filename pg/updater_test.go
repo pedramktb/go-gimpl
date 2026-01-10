@@ -15,16 +15,16 @@ type TestUpdateEntity struct {
 	Name string
 }
 
-func (e TestUpdateEntity) IdentifyColumns() []string {
+func (e TestUpdateEntity) IdentifyPgColumns() []string {
 	return []string{"pg_id"}
 }
-func (e TestUpdateEntity) IdentifyColumnVals() []any {
+func (e TestUpdateEntity) IdentifyPgColumnVals() []any {
 	return []any{e.ID}
 }
-func (e TestUpdateEntity) UpdateColumns() []string {
+func (e TestUpdateEntity) UpdatePgColumns() []string {
 	return []string{"pg_name"}
 }
-func (e TestUpdateEntity) UpdateColumnVals() []any {
+func (e TestUpdateEntity) UpdatePgColumnVals() []any {
 	return []any{e.Name}
 }
 

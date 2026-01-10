@@ -14,22 +14,22 @@ type TestSaveEntity struct {
 	Name string
 }
 
-func (e TestSaveEntity) CreateColumns() []string {
+func (e TestSaveEntity) CreatePgColumns() []string {
 	return []string{"pg_id", "pg_name"}
 }
-func (e TestSaveEntity) CreateColumnVals() []any {
+func (e TestSaveEntity) CreatePgColumnVals() []any {
 	return []any{e.ID, e.Name}
 }
-func (e TestSaveEntity) IdentifyColumns() []string {
+func (e TestSaveEntity) IdentifyPgColumns() []string {
 	return []string{"pg_id"}
 }
-func (e TestSaveEntity) IdentifyColumnVals() []any {
+func (e TestSaveEntity) IdentifyPgColumnVals() []any {
 	return []any{e.ID}
 }
-func (e TestSaveEntity) UpdateColumns() []string {
+func (e TestSaveEntity) UpdatePgColumns() []string {
 	return []string{"pg_name"}
 }
-func (e TestSaveEntity) UpdateColumnVals() []any {
+func (e TestSaveEntity) UpdatePgColumnVals() []any {
 	return []any{e.Name}
 }
 

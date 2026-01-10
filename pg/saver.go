@@ -39,16 +39,16 @@ func (cu *saver[S]) Save(ctx context.Context, items []S, txOpts ...gimpl.TxOpt) 
 	builder := squirrel.
 		Insert(cu.table).
 		PlaceholderFormat(squirrel.Dollar).
-		Columns(sample.CreateColumns()...)
+		Columns(sample.CreatePgColumns()...)
 
 	for i := range items {
-		builder = builder.Values(items[i].CreateColumnVals()...)
+		builder = builder.Values(items[i].CreatePgColumnVals()...)
 	}
 
-	builder = builder.Suffix("ON CONFLICT (" + strings.Join(sample.IdentifyColumns(), ",") +
+	builder = builder.Suffix("ON CONFLICT (" + strings.Join(sample.IdentifyPgColumns(), ",") +
 		") DO UPDATE SET " + strings.Join(func() []string {
-		setClauses := make([]string, len(sample.UpdateColumns()))
-		for i, c := range sample.UpdateColumns() {
+		setClauses := make([]string, len(sample.UpdatePgColumns()))
+		for i, c := range sample.UpdatePgColumns() {
 			setClauses[i] = fmt.Sprintf("%s=EXCLUDED.%s", c, c)
 		}
 		return setClauses
