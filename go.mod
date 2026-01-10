@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.7.6
+	github.com/jackc/pgx/v5 v5.8.0
 	github.com/lib/pq v1.10.9
 	github.com/pedramktb/go-tagerr v1.2.0
 	github.com/spf13/cobra v1.10.2
