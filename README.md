@@ -3,7 +3,7 @@
 <div align="center"><img src="logo.png" alt="Logo" width="369"/></div>
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/pedramktb/go-gimpl)](https://goreportcard.com/report/github.com/pedramktb/go-gimpl)
-[![test status](https://github.com/go-gorm/gorm/actions/workflows/tests.yml/badge.svg)](https://github.com/go-gorm/gorm/actions)
+[![test status](https://github.com/pedramktb/actions/workflows/lint_test_and_build.yml/badge.svg)](https://github.com/pedramktb/go-gimpl/actions)
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Go Reference](https://pkg.go.dev/badge/github.com/pedramktb/go-gimpl.svg)](https://pkg.go.dev/github.com/pedramktb/go-gimpl)
 
@@ -31,11 +31,85 @@ See the LICENSE file in the root of this repository for the full license text.
 
 ## Installation
 
+To use `go-gimpl` in your project:
+
 ```bash
 go get github.com/pedramktb/go-gimpl
 ```
 
+To install the CLI code generator:
+
+```bash
+go install github.com/pedramktb/go-gimpl/cmd/gimpl@latest
+```
+
+## Code Generation (Optional)
+
+Code generation is an optional utility layer. You can use the library by manually implementing the interfaces, but the `gimpl` CLI is recommended to automate boilerplate and ensure correctness.
+
+### 1. Annotate your Structs
+
+Use `//gimpl:` comments to define which interfaces your struct should implement.
+
+```go
+package users
+
+// User represents a user in the system.
+//
+//gimpl:pgimpl:Entity,CreateEntity,UpdateEntity
+type User struct {
+    ID    string `gimpl:"field:id;sort;filter" pgimpl:"column:user_id;identify"`
+    Name  string `gimpl:"field:name;sort;filter" pgimpl:"column:name;create;update"`
+    Email string `gimpl:"field:email;sort;filter" pgimpl:"column:email;create;update"`
+
+    // Nested struct flattened or delegated
+    Address Address `gimpl:"flat;prefix:addr_"`
+}
+
+// Address is a reusable component.
+//
+//gimpl:pgimpl:Entity,CreateEntity,UpdateEntity
+type Address struct {
+    City    string `gimpl:"field:city;sort" pgimpl:"column:city;create;update"`
+    Country string `gimpl:"field:country" pgimpl:"column:country;create;update"`
+}
+```
+
+### 2. Run the Generator
+
+Run the generator on your package path:
+
+```bash
+gimpl gen ./internal/users
+```
+
+This will create a `*_gen.go` file containing all the necessary method implementations (`PgColumn`, `SortPtr`, etc.), including handling flattened or delegated fields.
+
+### Tags Reference
+
+**`gimpl` tags:**
+- `field:<name>`: Logical name of the field for filtering/sorting.
+- `sort`: Enable sorting on this field.
+- `filter`: Enable filtering on this field.
+- `flat`: Flatten a nested struct's fields into the parent. Whenever the interface methods from below are supported by the nested struct, they will be delegated for a cleaner code generation.
+- `prefix:<string>`: Add a prefix to flattened fields (e.g., `addr_city`).
+
+**`pgimpl` tags:**
+- `column:<name>`: The database column name, only needed if different from field name.
+- `create`: Include this field in `Create` operations.
+- `update`: Include this field in `Update` operations.
+- `identify`: Use this field to identify records for updates. Usually the Primary Key(s).
+
+### Struct Annotations
+
+Add strict annotations above your struct definition:
+`//gimpl:pgimpl:<Interface1>,<Interface2>`
+
+Supported interfaces: `Entity`, `CreateEntity`, `UpdateEntity`, `SaveEntity`.
+
 ## Quick Start
+
+For a more complete example, check out the [example directory](./example).
 
 ```go
 import (
@@ -43,21 +117,17 @@ import (
     pgimpl "github.com/pedramktb/go-gimpl/pg"
 )
 
-// Define your entity
+// 1. Define your entity with tags either manually or via code generation
 type User struct {
-    ID    string
-    Name  string
-    Email string
+    // ...
 }
 
-// Implement the required interfaces (see Architecture section)
-
-// Create datasources
+// 3. Create datasources
 db, _ := sql.Open("postgres", connString)
 userFinder := pgimpl.Finder[User](db, "users")
 userCreator := pgimpl.Creator[User](db, "users")
 
-// Use the datasources
+// 4. Use the datasources
 ctx := context.Background()
 user, err := userFinder.FindOne(ctx, filter, nil)
 ```

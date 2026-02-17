@@ -37,5 +37,5 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Prerequisites
 
-- Go 1.23 or higher
+- Go 1.25 or higher
 - Docker 

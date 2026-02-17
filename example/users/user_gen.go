@@ -9,8 +9,8 @@ import (
 func (e User) SortPtr(field string) any {
 	switch field {
 	default:
-		if strings.HasPrefix(field, "loc_") {
-			return e.Location.SortPtr(strings.TrimPrefix(field, "loc_"))
+		if strings.HasPrefix(field, "") {
+			return e.Location.SortPtr(strings.TrimPrefix(field, ""))
 		}
 	}
 	return nil
@@ -19,8 +19,8 @@ func (e User) SortPtr(field string) any {
 func (e User) FilterPtr(field string) any {
 	switch field {
 	default:
-		if strings.HasPrefix(field, "loc_") {
-			return e.Location.FilterPtr(strings.TrimPrefix(field, "loc_"))
+		if strings.HasPrefix(field, "") {
+			return e.Location.FilterPtr(strings.TrimPrefix(field, ""))
 		}
 	}
 	return nil
@@ -31,8 +31,8 @@ func (e User) PgColumn(field string) string {
 	case "id":
 		return "id"
 	default:
-		if strings.HasPrefix(field, "loc_") {
-			return "loc_" + e.Location.PgColumn(strings.TrimPrefix(field, "loc_"))
+		if strings.HasPrefix(field, "") {
+			return "" + e.Location.PgColumn(strings.TrimPrefix(field, ""))
 		}
 	}
 	return ""
@@ -43,7 +43,7 @@ func (e User) PgColumns() []string {
 		"id",
 	}
 	for _, c := range e.Location.PgColumns() {
-		cols = append(cols, "loc_"+c)
+		cols = append(cols, ""+c)
 	}
 	return cols
 }
@@ -66,7 +66,7 @@ func (e User) NewWithPgColumnPtrs() (any, []any) {
 func (e User) CreatePgColumns() []string {
 	cols := []string{}
 	for _, c := range e.Location.CreatePgColumns() {
-		cols = append(cols, "loc_"+c)
+		cols = append(cols, ""+c)
 	}
 	return cols
 }
@@ -82,7 +82,7 @@ func (e User) IdentifyPgColumns() []string {
 		"id",
 	}
 	for _, c := range e.Location.IdentifyPgColumns() {
-		cols = append(cols, "loc_"+c)
+		cols = append(cols, ""+c)
 	}
 	return cols
 }
@@ -98,7 +98,7 @@ func (e User) IdentifyPgColumnVals() []any {
 func (e User) UpdatePgColumns() []string {
 	cols := []string{}
 	for _, c := range e.Location.UpdatePgColumns() {
-		cols = append(cols, "loc_"+c)
+		cols = append(cols, ""+c)
 	}
 	return cols
 }
