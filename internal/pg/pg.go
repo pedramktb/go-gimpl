@@ -15,16 +15,13 @@ func Pg(ctx context.Context, connString string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse connection string: %w", err)
 	}
-
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	db, err := sql.Open("pgx", stdlib.RegisterConnConfig(config.ConnConfig))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database pool: %w", err)
 	}
-
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
+	if err := db.PingContext(ctx); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
-
-	return stdlib.OpenDBFromPool(pool), nil
+	return db, nil
 }
