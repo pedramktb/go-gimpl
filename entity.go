@@ -5,9 +5,9 @@ package gimpl
 type Entity interface {
 	// SortPtr returns a pointer to the field used for sorting and nil if the field does not exist or does not allow sorting
 	// It will also be used to extract cursor values respective to sorts
-	SortPtr(field string) any
+	SortPtr(path string) any
 	// FilterPtr returns a pointer to the field used for filtering and nil if the field does not exist or does not allow filtering
-	FilterPtr(field string) any
+	FilterPtr(path string) any
 }
 
 // CreateEntity is the Entity augment used with creation operations.

@@ -6,8 +6,9 @@ import "github.com/pedramktb/go-gimpl"
 // DO NOT USE POINTER RECEIVERS
 type Entity interface {
 	gimpl.Entity
-	// PgColumn returns the column name used for the given field
-	PgColumn(field string) string
+	// PgPath returns the postgres path steps for the given path.
+	// If the Entity is a root entity, the zero index will be the column name.
+	PgPath(path string) []string
 	// PgColumns returns a slice of column names used for data retrieval.
 	// Returned values should be static and not vary between calls
 	PgColumns() []string

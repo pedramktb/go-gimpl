@@ -35,8 +35,8 @@ type TestEntity struct {
 	Name string
 }
 
-func (e TestEntity) FilterPtr(field string) any {
-	switch field {
+func (e TestEntity) FilterPtr(path string) any {
+	switch path {
 	case "id":
 		return &e.ID
 	case "name":
@@ -45,8 +45,8 @@ func (e TestEntity) FilterPtr(field string) any {
 		return nil
 	}
 }
-func (e TestEntity) SortPtr(field string) any {
-	switch field {
+func (e TestEntity) SortPtr(path string) any {
+	switch path {
 	case "id":
 		return &e.ID
 	case "name":
@@ -55,14 +55,14 @@ func (e TestEntity) SortPtr(field string) any {
 		return nil
 	}
 }
-func (e TestEntity) PgColumn(field string) string {
-	switch field {
+func (e TestEntity) PgPath(path string) []string {
+	switch path {
 	case "id":
-		return "pg_id"
+		return []string{"pg_id"}
 	case "name":
-		return "pg_name"
+		return []string{"pg_name"}
 	default:
-		return ""
+		return nil
 	}
 }
 func (e TestEntity) PgColumns() []string {

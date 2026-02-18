@@ -123,37 +123,32 @@ func buildQuantPath(sample any, path string) (any, []string, error) {
 	if path == "" {
 		return sample, nil, nil
 	}
-	fields := strings.Split(path, ".")
-	sqlPath := make([]string, 0, len(fields))
-	for i := range fields {
-		entitySample, ok := sample.(Entity)
-		if !ok {
-			if i > 0 {
-				return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q is not an entity", fields[i], path)))
-			}
-			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q is not an entity", fields[i])))
-		}
-		sample = entitySample.FilterPtr(fields[i])
-		if sample == nil {
-			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], path)))
-		}
-		part := entitySample.PgColumn(fields[i])
-		if part == "" {
-			return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))
-		}
-		sqlPath = append(sqlPath, part)
+
+	entitySample, ok := sample.(Entity)
+	if !ok {
+		return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field in path %q is not an entity", path)))
 	}
-	t := reflect.TypeOf(sample)
+
+	field := entitySample.FilterPtr(path)
+	if field == nil {
+		return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field in path %q is not filterable", path)))
+	}
+
+	sqlPath := entitySample.PgPath(path)
+	if len(sqlPath) == 0 {
+		return nil, nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field in path %q has no associated SQL path", path)))
+	}
+
+	t := reflect.TypeOf(field)
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 
 	if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-		return nil, nil, tagerr.ErrInternal.Wrap(fmt.Errorf("field %q in path %q is not an array or slice", fields[len(fields)-1], path))
+		return nil, nil, tagerr.ErrInternal.Wrap(fmt.Errorf("field in path %q is not an array or slice", path))
 	}
 
 	return reflect.New(t.Elem()).Interface(), sqlPath, nil
-
 }
 
 // buildColumnQuant emits EXISTS / NOT EXISTS checks that iterate native Postgres arrays with unnest().
@@ -296,26 +291,17 @@ func buildCondPath(sample any, path string) ([]string, error) {
 	if path == "" {
 		return nil, nil
 	}
-	fields := strings.Split(path, ".")
-	sqlPath := make([]string, 0, len(fields))
-	for i := range fields {
-		entitySample, ok := sample.(Entity)
-		if !ok {
-			if i > 0 {
-				return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q is not an entity", fields[i], path)))
-			}
-			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("parent of field %q in path %q is not an entity", fields[i], path)))
-		}
-		sample = entitySample.FilterPtr(fields[i])
-		if sample == nil {
-			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q was not found or is not filterable", fields[i], path)))
-		}
-		part := entitySample.PgColumn(fields[i])
-		if part == "" {
-			return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field %q in path %q has no associated column", fields[i], path)))
-		}
-		sqlPath = append(sqlPath, part)
+
+	entitySample, ok := sample.(Entity)
+	if !ok {
+		return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field in path %q is not an entity", path)))
 	}
+
+	sqlPath := entitySample.PgPath(path)
+	if len(sqlPath) == 0 {
+		return nil, tagerr.ErrInternal.Wrap(gimpl.ErrInvalidExpr.Wrap(fmt.Errorf("field in path %q has no associated SQL path", path)))
+	}
+
 	return sqlPath, nil
 }
 

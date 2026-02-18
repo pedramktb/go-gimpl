@@ -2,6 +2,7 @@ package pgimpl_test
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/Masterminds/squirrel"
@@ -28,8 +29,16 @@ func (e ExprTestEntity) FilterPtr(field string) any {
 	}
 	return nil
 }
-func (e ExprTestEntity) SortPtr(field string) any          { return nil }
-func (e ExprTestEntity) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntity) SortPtr(field string) any { return nil }
+func (e ExprTestEntity) PgPath(path string) []string {
+	if split := strings.SplitN(path, ".", 2); len(split) == 2 {
+		switch split[0] {
+		case "meta":
+			return append([]string{"pg_meta"}, e.Meta.PgPath(split[1])...)
+		}
+	}
+	return []string{"pg_" + path}
+}
 func (e ExprTestEntity) PgColumns() []string               { return nil }
 func (e ExprTestEntity) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
@@ -43,7 +52,7 @@ func (e ExprTestEntityMeta) FilterPtr(field string) any {
 	return nil
 }
 func (e ExprTestEntityMeta) SortPtr(field string) any          { return nil }
-func (e ExprTestEntityMeta) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntityMeta) PgPath(path string) []string       { return []string{"pg_" + path} }
 func (e ExprTestEntityMeta) PgColumns() []string               { return nil }
 func (e ExprTestEntityMeta) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
@@ -61,7 +70,7 @@ func (e ExprTestEntityItem) FilterPtr(field string) any {
 	return nil
 }
 func (e ExprTestEntityItem) SortPtr(field string) any          { return nil }
-func (e ExprTestEntityItem) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntityItem) PgPath(path string) []string       { return []string{"pg_" + path} }
 func (e ExprTestEntityItem) PgColumns() []string               { return nil }
 func (e ExprTestEntityItem) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 
@@ -75,7 +84,7 @@ func (e ExprTestEntityItemSub) FilterPtr(field string) any {
 	return nil
 }
 func (e ExprTestEntityItemSub) SortPtr(field string) any          { return nil }
-func (e ExprTestEntityItemSub) PgColumn(field string) string      { return "pg_" + field }
+func (e ExprTestEntityItemSub) PgPath(path string) []string       { return []string{"pg_" + path} }
 func (e ExprTestEntityItemSub) PgColumns() []string               { return nil }
 func (e ExprTestEntityItemSub) NewWithPgColumnPtrs() (any, []any) { return &e, nil }
 

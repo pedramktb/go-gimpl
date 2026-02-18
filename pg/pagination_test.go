@@ -19,9 +19,9 @@ type PaginationTestEntity struct {
 	Active bool
 }
 
-func (e PaginationTestEntity) FilterPtr(field string) any { return nil }
-func (e PaginationTestEntity) SortPtr(field string) any {
-	switch field {
+func (e PaginationTestEntity) FilterPtr(path string) any { return nil }
+func (e PaginationTestEntity) SortPtr(path string) any {
+	switch path {
 	case "id":
 		return &e.ID
 	case "name":
@@ -34,18 +34,18 @@ func (e PaginationTestEntity) SortPtr(field string) any {
 		return nil
 	}
 }
-func (e PaginationTestEntity) PgColumn(field string) string {
-	switch field {
+func (e PaginationTestEntity) PgPath(path string) []string {
+	switch path {
 	case "id":
-		return "pg_id"
+		return []string{"pg_id"}
 	case "name":
-		return "pg_name"
+		return []string{"pg_name"}
 	case "score":
-		return "pg_score"
+		return []string{"pg_score"}
 	case "active":
-		return "pg_active"
+		return []string{"pg_active"}
 	default:
-		return ""
+		return nil
 	}
 }
 func (e PaginationTestEntity) PgColumns() []string {
@@ -82,7 +82,7 @@ func TestFromSorts_Empty(t *testing.T) {
 func TestFromSorts_NoSample(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
-		Sorts: []gimpl.Sort{{Field: "name", Direction: gimpl.SortAsc}},
+		Sorts: []gimpl.Sort{{Path: "name", Direction: gimpl.SortAsc}},
 	}
 
 	_, _, err := pgimpl.FromSorts(s, base)
@@ -92,9 +92,9 @@ func TestFromSorts_NoSample(t *testing.T) {
 
 type invalidEntity struct{}
 
-func (invalidEntity) FilterPtr(field string) any               { return nil }
-func (invalidEntity) SortPtr(field string) any                 { return nil }
-func (invalidEntity) Column(field string) string               { return "" }
+func (invalidEntity) FilterPtr(path string) any                { return nil }
+func (invalidEntity) SortPtr(path string) any                  { return nil }
+func (invalidEntity) Column(path string) string                { return "" }
 func (invalidEntity) Columns() []string                        { return nil }
 func (invalidEntity) NewWithColumnPtrs() (gimpl.Entity, []any) { return &invalidEntity{}, nil }
 
@@ -102,7 +102,7 @@ func TestFromSorts_InvalidSample(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: invalidEntity{}, // Not a pgimpl.Entity
-		Sorts:  []gimpl.Sort{{Field: "name", Direction: gimpl.SortAsc}},
+		Sorts:  []gimpl.Sort{{Path: "name", Direction: gimpl.SortAsc}},
 	}
 
 	_, _, err := pgimpl.FromSorts(s, base)
@@ -110,11 +110,11 @@ func TestFromSorts_InvalidSample(t *testing.T) {
 	require.ErrorIs(t, err, gimpl.ErrInvalidSorting)
 }
 
-func TestFromSorts_SingleFieldAsc(t *testing.T) {
+func TestFromSorts_SinglePathAsc(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
-		Sorts:  []gimpl.Sort{{Field: "name", Direction: gimpl.SortAsc}},
+		Sorts:  []gimpl.Sort{{Path: "name", Direction: gimpl.SortAsc}},
 	}
 
 	sql, args, reverse := sortsToSQL(t, s, base)
@@ -123,11 +123,11 @@ func TestFromSorts_SingleFieldAsc(t *testing.T) {
 	require.Nil(t, reverse)
 }
 
-func TestFromSorts_SingleFieldDesc(t *testing.T) {
+func TestFromSorts_SinglePathDesc(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
-		Sorts:  []gimpl.Sort{{Field: "score", Direction: gimpl.SortDesc}},
+		Sorts:  []gimpl.Sort{{Path: "score", Direction: gimpl.SortDesc}},
 	}
 
 	sql, args, reverse := sortsToSQL(t, s, base)
@@ -136,13 +136,13 @@ func TestFromSorts_SingleFieldDesc(t *testing.T) {
 	require.Nil(t, reverse)
 }
 
-func TestFromSorts_MultipleFields(t *testing.T) {
+func TestFromSorts_MultiplePaths(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "score", Direction: gimpl.SortDesc},
-			{Field: "name", Direction: gimpl.SortAsc},
+			{Path: "score", Direction: gimpl.SortDesc},
+			{Path: "name", Direction: gimpl.SortAsc},
 		},
 	}
 
@@ -152,11 +152,11 @@ func TestFromSorts_MultipleFields(t *testing.T) {
 	require.Nil(t, reverse)
 }
 
-func TestFromSorts_InvalidField(t *testing.T) {
+func TestFromSorts_InvalidPath(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
-		Sorts:  []gimpl.Sort{{Field: "nonexistent", Direction: gimpl.SortAsc}},
+		Sorts:  []gimpl.Sort{{Path: "nonexistent", Direction: gimpl.SortAsc}},
 	}
 
 	_, _, err := pgimpl.FromSorts(s, base)
@@ -169,7 +169,7 @@ func TestFromSorts_WithCursorAsc(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "name", Direction: gimpl.SortAsc, CursorPart: "alice"},
+			{Path: "name", Direction: gimpl.SortAsc, CursorPart: "alice"},
 		},
 	}
 
@@ -186,7 +186,7 @@ func TestFromSorts_WithCursorDesc(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "score", Direction: gimpl.SortDesc, CursorPart: 100},
+			{Path: "score", Direction: gimpl.SortDesc, CursorPart: 100},
 		},
 	}
 
@@ -204,7 +204,7 @@ func TestFromSorts_WithNilCursorAsc(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "name", Direction: gimpl.SortAsc, CursorPart: nilName},
+			{Path: "name", Direction: gimpl.SortAsc, CursorPart: nilName},
 		},
 	}
 
@@ -222,7 +222,7 @@ func TestFromSorts_WithNilCursorDesc(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "score", Direction: gimpl.SortDesc, CursorPart: nilScore},
+			{Path: "score", Direction: gimpl.SortDesc, CursorPart: nilScore},
 		},
 	}
 
@@ -234,19 +234,19 @@ func TestFromSorts_WithNilCursorDesc(t *testing.T) {
 	require.NotNil(t, reverse)
 }
 
-func TestFromSorts_MultiFieldWithCursor(t *testing.T) {
+func TestFromSorts_MultiPathWithCursor(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "score", Direction: gimpl.SortDesc, CursorPart: 100},
-			{Field: "name", Direction: gimpl.SortAsc, CursorPart: "alice"},
+			{Path: "score", Direction: gimpl.SortDesc, CursorPart: 100},
+			{Path: "name", Direction: gimpl.SortAsc, CursorPart: "alice"},
 		},
 	}
 
 	sql, args, reverse := sortsToSQL(t, s, base)
 	require.Contains(t, sql, "WHERE")
-	// Should have cursor conditions for both fields
+	// Should have cursor conditions for both paths
 	require.Contains(t, sql, "pg_score")
 	require.Contains(t, sql, "pg_name")
 	require.Contains(t, sql, "ORDER BY pg_score desc, pg_name asc")
@@ -254,13 +254,13 @@ func TestFromSorts_MultiFieldWithCursor(t *testing.T) {
 	require.NotNil(t, reverse)
 }
 
-func TestFromSorts_MultiFieldPartialCursor(t *testing.T) {
+func TestFromSorts_MultiPathPartialCursor(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "score", Direction: gimpl.SortDesc, CursorPart: 100},
-			{Field: "name", Direction: gimpl.SortAsc}, // No cursor for second field
+			{Path: "score", Direction: gimpl.SortDesc, CursorPart: 100},
+			{Path: "name", Direction: gimpl.SortAsc}, // No cursor for second path
 		},
 	}
 
@@ -278,7 +278,7 @@ func TestFromSorts_ReverseQuery(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "name", Direction: gimpl.SortAsc, CursorPart: "bob"},
+			{Path: "name", Direction: gimpl.SortAsc, CursorPart: "bob"},
 		},
 	}
 
@@ -307,9 +307,9 @@ func TestFromSorts_ComplexCursor(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "score", Direction: gimpl.SortDesc, CursorPart: 95},
-			{Field: "name", Direction: gimpl.SortAsc, CursorPart: "charlie"},
-			{Field: "id", Direction: gimpl.SortAsc, CursorPart: testID},
+			{Path: "score", Direction: gimpl.SortDesc, CursorPart: 95},
+			{Path: "name", Direction: gimpl.SortAsc, CursorPart: "charlie"},
+			{Path: "id", Direction: gimpl.SortAsc, CursorPart: testID},
 		},
 	}
 
@@ -321,12 +321,12 @@ func TestFromSorts_ComplexCursor(t *testing.T) {
 	require.NotNil(t, reverse)
 }
 
-func TestFromSorts_InvalidCursorField(t *testing.T) {
+func TestFromSorts_InvalidCursorPath(t *testing.T) {
 	base := squirrel.Select("*").From("test")
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "nonexistent", Direction: gimpl.SortAsc, CursorPart: "value"},
+			{Path: "nonexistent", Direction: gimpl.SortAsc, CursorPart: "value"},
 		},
 	}
 
@@ -340,7 +340,7 @@ func TestFromSorts_CursorWithNilHandling(t *testing.T) {
 	s := gimpl.Sorts{
 		Sample: PaginationTestEntity{},
 		Sorts: []gimpl.Sort{
-			{Field: "name", Direction: gimpl.SortAsc, CursorPart: "test"},
+			{Path: "name", Direction: gimpl.SortAsc, CursorPart: "test"},
 		},
 	}
 

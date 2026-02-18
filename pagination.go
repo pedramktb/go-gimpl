@@ -59,7 +59,7 @@ func (d SortDirection) isValid() bool {
 
 // Cursor is here because its meaningless without Sort.
 type Sort struct {
-	Field      string
+	Path       string
 	Direction  SortDirection
 	CursorPart any
 }
@@ -94,7 +94,7 @@ func (s Sorts) Cursor(cursorItem Entity) Cursor {
 	}
 	cursor := make(Cursor, len(s.Sorts))
 	for i := range s.Sorts {
-		ptr := cursorItem.SortPtr(s.Sorts[i].Field)
+		ptr := cursorItem.SortPtr(s.Sorts[i].Path)
 		if ptr == nil {
 			return nil
 		}
@@ -139,14 +139,14 @@ func (s *Sorts) FromStr(sorts []string, cursor string) error {
 			return errors.New("invalid sort direction")
 		}
 		s.Sorts[i] = Sort{
-			Field:     split[0],
+			Path:      split[0],
 			Direction: SortDirection(split[1]),
 		}
 
-		// Create cursor with the same type as the field
+		// Create cursor with the same type as the path's field type
 		cursorPart := s.Sample.SortPtr(split[0])
 		if cursorPart == nil {
-			return fmt.Errorf("field %q not found", split[0])
+			return fmt.Errorf("path %q not found", split[0])
 		}
 		if len(cur) != 0 {
 			// If there is a cursor part, unmarshal it
