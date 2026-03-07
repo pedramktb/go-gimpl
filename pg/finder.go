@@ -130,6 +130,7 @@ func (f *finder[E]) fetch(ctx context.Context, tOpts txOpts, estimatedSize uint6
 	}
 	defer rows.Close()
 
+	// Pre-allocate slice to avoid dynamic growth and improve performance
 	results := make([]E, 0, estimatedSize)
 	for rows.Next() {
 		e, ptrs := (*new(E)).NewWithColumnPtrs()
