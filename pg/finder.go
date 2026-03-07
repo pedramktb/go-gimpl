@@ -86,7 +86,7 @@ func (f *finder[E]) Find(ctx context.Context, filter gimpl.Expr, paginateOpts []
 	if err != nil {
 		return gimpl.Paginated[E]{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 	}
-	results, err := f.fetch(ctx, tOpts, query, args...)
+	results, err := f.fetch(ctx, tOpts, pagOpts.Limit+1, query, args...)
 	if err != nil {
 		return gimpl.Paginated[E]{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 	}
@@ -97,7 +97,7 @@ func (f *finder[E]) Find(ctx context.Context, filter gimpl.Expr, paginateOpts []
 		if err != nil {
 			return gimpl.Paginated[E]{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 		}
-		prevResults, err = f.fetch(ctx, tOpts, prevCursorQuery, prevCursorArgs...)
+		prevResults, err = f.fetch(ctx, tOpts, pagOpts.Limit+1, prevCursorQuery, prevCursorArgs...)
 		if err != nil {
 			return gimpl.Paginated[E]{}, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 		}
@@ -123,14 +123,14 @@ func (f *finder[E]) Find(ctx context.Context, filter gimpl.Expr, paginateOpts []
 	}, nil
 }
 
-func (f *finder[E]) fetch(ctx context.Context, tOpts txOpts, query string, args ...any) ([]E, error) {
+func (f *finder[E]) fetch(ctx context.Context, tOpts txOpts, estimatedSize uint64, query string, args ...any) ([]E, error) {
 	rows, err := tOpts.Tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, gimpl.ErrDatastoreUnhandled.Wrap(err).WithStack()
 	}
 	defer rows.Close()
 
-	var results []E
+	results := make([]E, 0, estimatedSize)
 	for rows.Next() {
 		e, ptrs := (*new(E)).NewWithColumnPtrs()
 		err := rows.Scan(ptrs...)
